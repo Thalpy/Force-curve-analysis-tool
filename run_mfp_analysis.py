@@ -2,7 +2,7 @@
 """
 Created on Feb 2019
 
-@author: Joe + jrr1
+@author: Thalpy + Thalpy
 V.7.0 Edited 10.8.20
 CURRENT MASTER - THIS IS THE FILE TO EDIT
 """

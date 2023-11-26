@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Feb 19 22:53:17 2019
-@author: Joe
+@author: Thalpy
 Version PhD 1.0
 """
 

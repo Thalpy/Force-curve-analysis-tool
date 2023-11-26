@@ -6770,7 +6770,7 @@ LOOK_AND_FEEL_TABLE = {'SystemDefault':
                                     'SLIDER_DEPTH': 0,
                                     'PROGRESS_DEPTH': 0},
                         
-                        'Joe': {'BACKGROUND': '#2a2b24',
+                        'Thalpy': {'BACKGROUND': '#2a2b24',
                                     'TEXT': '#0ea7ee',
                                     'INPUT': '#423a3a', 'SCROLL': '#423a3a',
                                     'TEXT_INPUT': '#f92672',

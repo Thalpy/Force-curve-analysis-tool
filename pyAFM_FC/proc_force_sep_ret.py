@@ -2,7 +2,7 @@
 """
 Created on Sun Jan  21 2018
 
-@author: Joe
+@author: Thalpy
 Version PhD 1.0
 """
 

@@ -2,7 +2,7 @@
 """
 Created on Feb 2019
 
-@author: jrr1
+@author: Thalpy
 """
 
 

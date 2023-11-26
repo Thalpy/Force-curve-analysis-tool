@@ -5,7 +5,7 @@ Created on Thur 28 March 2019
 Move some utility functions for binning data, computing derivatives etc into a
 separate utility program
 
-@author: Joe
+@author: Thalpy
 Version PhD 1.0
 """
 from __future__ import (absolute_import, division, print_function)

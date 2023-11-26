@@ -2,7 +2,7 @@
 """
 Created on Feb 2019
 
-@author: jrr1
+@author: Thalpy
 """
 
 
@@ -29,7 +29,7 @@ dfit_off = 65
 ext = '.jpg'
 out = True
 
-#JoeParams
+#ThalpyParams
 """
 0.6mM = 9.942266946
 1.6mM = 6.088369852

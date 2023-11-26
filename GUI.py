@@ -2,7 +2,7 @@
 """
 Created on Fri Feb 15 19:16:23 2019
 
-@author: Joe
+@author: Thalpy
 """
 
 import PySimpleGUIedit as sg
@@ -318,7 +318,7 @@ class forceGUI(object):
             
         self.window.Close()
         
-        #def proc_force_sep(name, joeCount, k_c = 0.144, binsize = 0.5, thresh = 0, dfit_min = 1000, dfit_max = 2000,
+        #def proc_force_sep(name, ThalpyCount, k_c = 0.144, binsize = 0.5, thresh = 0, dfit_min = 1000, dfit_max = 2000,
         #    cfit_min = 38, cfit_max = 60, fitbin = 5, squareRange = 20, h=3.444102299, auto_dfit = False, extra = False, approach = True):
      
 forceGUI()

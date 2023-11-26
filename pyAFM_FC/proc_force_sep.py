@@ -2,7 +2,7 @@
 """
 Created on Sun Jan  21 2018
 
-@author: jrr1
+@author: Thalpy
 """
 
 from __future__ import (absolute_import, division, print_function)
