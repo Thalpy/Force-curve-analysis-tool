@@ -24,14 +24,19 @@ def extract_variables_from_log(text):
     return variables
 
 # Function to find the appropriate Run folder
-def find_run_folder(file_path):
+def find_run_folder(file_path, mode):
     base_folder = file_path[:-4]
     force_curve_folder = base_folder + '_force_curves'
 
     if not os.path.exists(force_curve_folder):
         return None
 
-    run_folders = [f for f in os.listdir(force_curve_folder) if os.path.isdir(os.path.join(force_curve_folder, f)) and 'Run' in f]
+    if mode == "Approach":
+        pattern = "Run"
+    else:
+        pattern = "ret_Run"
+
+    run_folders = [f for f in os.listdir(force_curve_folder) if os.path.isdir(os.path.join(force_curve_folder, f)) and pattern in f]
     
     # Finding the folder with the highest number or "(this one)"
     selected_run_folder = None
@@ -40,10 +45,14 @@ def find_run_folder(file_path):
         if "(this one)" in folder:
             selected_run_folder = folder
             break
-        run_number = int(re.search(r'Run(\d+)', folder).group(1))
-        if run_number > max_run_number:
-            max_run_number = run_number
-            selected_run_folder = folder
+        # Adjusted regex to match the folder naming pattern for both modes
+        regex_pattern = r'Run(\d+)' if mode == "Approach" else r'ret_Run(\d+)_Ret'
+        run_number_match = re.search(regex_pattern, folder)
+        if run_number_match:
+            run_number = int(run_number_match.group(1))
+            if run_number > max_run_number:
+                max_run_number = run_number
+                selected_run_folder = folder
 
     return os.path.join(force_curve_folder, selected_run_folder) if selected_run_folder else None
 
@@ -104,7 +113,7 @@ class MFPAnalysisApp(tk.Tk):
             self.file_label.config(text=os.path.basename(file_path))
             self.run_button['state'] = 'normal'
 
-            run_folder = find_run_folder(file_path)
+            run_folder = find_run_folder(file_path, self.mode.get())
             if run_folder:
                 log_file_path = os.path.join(run_folder, 'approachparameter_log.txt')
                 if os.path.exists(log_file_path):
