@@ -18,14 +18,17 @@ import shlex, subprocess, os
 from os.path import splitext
 import glob
 from scipy.optimize import curve_fit
+import gc
 
 
 import matplotlib  as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import quiver, cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import csv
 mpl.rcParams['lines.linewidth'] = 2
+plt.ioff()
 
 from .utils import *
 
@@ -88,94 +91,100 @@ def proc_force_sep(name, k_c = 0.188, binsize = 1.0, dfit_win = 50, dfit_off = 6
 
     fig, ax = plt.subplots(figsize=(10,4))
     i=0
-    for fullname in namelist:
-        #the files in 'namelist' have names structured like '005_approach.txt'
-        #this parses the name and pulls out '5' as the index
-        #would need to change if files names are different
-        numbCountJ = [int(s) for s in str(fullname) if s.isdigit()]
-        numbCountJ = ("".join(map(str, numbCountJ[-3:])))
 
-        da = np.loadtxt(fullname)
-        zp = da[:,0]*1000.0 #convert microns to nm
-        df = da[:,1]*1.0e9 #deflection in nm
-        if not approach:
-            zp = zp[::-1]
-            df = df[::-1]
+    try:
+        for fullname in namelist:
+            #the files in 'namelist' have names structured like '005_approach.txt'
+            #this parses the name and pulls out '5' as the index
+            #would need to change if files names are different
+            numbCountJ = [int(s) for s in str(fullname) if s.isdigit()]
+            numbCountJ = ("".join(map(str, numbCountJ[-3:])))
 
-        avgdf_far = np.mean(df[0:(fitbin*10)])
-        df = df - avgdf_far
+            da = np.loadtxt(fullname)
+            zp = da[:,0]*1000.0 #convert microns to nm
+            df = da[:,1]*1.0e9 #deflection in nm
+            if not approach:
+                zp = zp[::-1]
+                df = df[::-1]
 
-        if np.max(df) < cthresh:
-            print('skipping ' +str(numbCountJ).zfill(3))
-            continue
+            avgdf_far = np.mean(df[0:(fitbin*10)])
+            df = df - avgdf_far
 
-        # CHANGED
-        #guess contact point and work backwards
-        #cthresh = 'first pass' guess deflection threshold for contact
-        #returns de-drifted zp, df.  data used to de-drift runs from dfit_win:2*dfit_win
-        zp, df, dfit_used = remove_farfield_drift(zp,df,fitbin,cfit_min,cthresh, dfit_off,
-            dfit_win, out, backdir, numbCountJ, ext)
+            if np.max(df) < cthresh:
+                print('skipping ' +str(numbCountJ).zfill(3))
+                continue
 
-        f_max = k_c*np.max(df)
-        #binning stuff - helps with fits to find contact point
-        zp, df, zpb, dfb, dfb_std = bin_z_df(zp, df, fitbin)
+            # CHANGED
+            #guess contact point and work backwards
+            #cthresh = 'first pass' guess deflection threshold for contact
+            #returns de-drifted zp, df.  data used to de-drift runs from dfit_win:2*dfit_win
+            zp, df, dfit_used = remove_farfield_drift(zp,df,fitbin,cfit_min,cthresh, dfit_off,
+                dfit_win, out, backdir, numbCountJ, ext)
 
-        # fit region where deflection is between cfit_min and cfit_max to straight line
-        # if there aren't enough points in here (>5 seems to work), skip this curve
-        # note that this is sensitive to fitbin -less binning will naturally give
-        # you more (noisy) points
-        w = np.where( (dfb > cfit_min) & (dfb <cfit_max))
-        if np.size(w) < min_cont_pts:
-            print('skipping ' +str(numbCountJ).zfill(3))
-            continue
+            f_max = k_c*np.max(df)
+            #binning stuff - helps with fits to find contact point
+            zp, df, zpb, dfb, dfb_std = bin_z_df(zp, df, fitbin)
 
-        print('aligning '+str(numbCountJ).zfill(3))
+            # fit region where deflection is between cfit_min and cfit_max to straight line
+            # if there aren't enough points in here (>5 seems to work), skip this curve
+            # note that this is sensitive to fitbin -less binning will naturally give
+            # you more (noisy) points
+            w = np.where( (dfb > cfit_min) & (dfb <cfit_max))
+            if np.size(w) < min_cont_pts:
+                print('skipping ' +str(numbCountJ).zfill(3))
+                continue
 
-        zp, df, sep, zpb, sepb, deriv_df, zc, zc1 = align_contact_reg(zpb, dfb, dfb_std, zp,
-            df, w, dfit_used, cfit_max, out, defldir, derivdir, numbCountJ, ext, slope)
+            print('aligning '+str(numbCountJ).zfill(3))
 
-        zp_arr = np.concatenate((zp_arr, zp), axis=0)
-        df_arr = np.concatenate((df_arr, df), axis=0)
-        zp_bin_arr = np.concatenate((zp_bin_arr, zpb), axis=0)
-        df_deriv_arr = np.concatenate((df_deriv_arr, deriv_df), axis=0)
-        zp_deriv_used = np.concatenate( (zp_deriv_used , zpb[w]), axis=0)
-        df_deriv_used = np.concatenate( (df_deriv_used ,deriv_df[w]), axis=0)
+            zp, df, sep, zpb, sepb, deriv_df, zc, zc1 = align_contact_reg(zpb, dfb, dfb_std, zp,
+                df, w, dfit_used, cfit_max, out, defldir, derivdir, numbCountJ, ext, slope)
 
-        zc_arr = np.append(zc_arr, [zc], axis=0)
+            zp_arr = np.concatenate((zp_arr, zp), axis=0)
+            df_arr = np.concatenate((df_arr, df), axis=0)
+            zp_bin_arr = np.concatenate((zp_bin_arr, zpb), axis=0)
+            df_deriv_arr = np.concatenate((df_deriv_arr, deriv_df), axis=0)
+            zp_deriv_used = np.concatenate( (zp_deriv_used , zpb[w]), axis=0)
+            df_deriv_used = np.concatenate( (df_deriv_used ,deriv_df[w]), axis=0)
 
-        dfi = pd.DataFrame({
-            'zp': zp,
-            'df': df,
-            'sep': sep,
-            'force': k_c*df,
-            'index': int(numbCountJ)
-        })
+            zc_arr = np.append(zc_arr, [zc], axis=0)
 
-        f_min = np.min(k_c*dfb)
-        min_loc = sepb[np.argmin(dfb)]
-        f_noise = np.std(k_c*dfb[0:np.argmin(dfb)])
+            dfi = pd.DataFrame({
+                'zp': zp,
+                'df': df,
+                'sep': sep,
+                'force': k_c*df,
+                'index': int(numbCountJ)
+            })
 
-        dfp = pd.DataFrame({
-            'index': [int(numbCountJ)],
-            'slope': [slope],
-            'k_c': [k_c],
-            'F_max': [f_max],
-            'z_c': [zc],
-            'z_c1': [zc1],
-            'F_min': [f_min],
-            'minLoc': [min_loc],
-            'F_noise': [f_noise]
-        })
+            f_min = np.min(k_c*dfb)
+            min_loc = sepb[np.argmin(dfb)]
+            f_noise = np.std(k_c*dfb[0:np.argmin(dfb)])
 
-        force_curves=force_curves.append(dfi, sort=True)
-        curve_param=curve_param.append(dfp, sort=True)
-        #del dfi
+            dfp = pd.DataFrame({
+                'index': [int(numbCountJ)],
+                'slope': [slope],
+                'k_c': [k_c],
+                'F_max': [f_max],
+                'z_c': [zc],
+                'z_c1': [zc1],
+                'F_min': [f_min],
+                'minLoc': [min_loc],
+                'F_noise': [f_noise]
+            })
 
-        ax.plot(zp,df , '-')
-        ax.set_ylabel('def (nm)')
-        ax.set_xlabel('zp (nm)')
-        plt.tight_layout()
-        i=i+1
+            force_curves=force_curves.append(dfi, sort=True)
+            curve_param=curve_param.append(dfp, sort=True)
+            #del dfi
+
+            ax.plot(zp,df , '-')
+            ax.set_ylabel('def (nm)')
+            ax.set_xlabel('zp (nm)')
+            plt.tight_layout()
+            i=i+1
+    except:
+        print('error in curve ' +str(numbCountJ).zfill(3))
+        print("failed to process curve!")
+        pass
 
     print('%d curves processed out of %d total force curves' % (i, len(namelist)))
 

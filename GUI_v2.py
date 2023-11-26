@@ -164,24 +164,27 @@ class MFPAnalysisApp(tk.Tk):
             messagebox.showerror("Error", "No file selected")
             return
 
-        # Extract values from entries, but use the full path for 'name'
-        variable_values = {var: self.selected_file if var == 'name' else entry.get() for var, entry in self.variable_entries.items()}
+        # Extract values from entries
+        variable_values = {var: entry.get() for var, entry in self.variable_entries.items()}
 
-        # Fill in default values if fields are empty (excluding 'name')
+        # Fill in default values if fields are empty
         for var, entry in self.variable_entries.items():
-            if var != 'name' and not entry.get():
+            if not entry.get():
                 entry.insert(0, self.default_values.get(var, ''))
 
-        # Update variable_values with the new (or default) values (excluding 'name')
-        variable_values = {var: entry.get() for var, entry in self.variable_entries.items() if var != 'name'}
+        # Update variable_values with the new (or default) values
+        variable_values = {var: entry.get() for var, entry in self.variable_entries.items()}
+
+        # Set 'approach' based on the mode
+        variable_values['approach'] = self.mode.get() == "Approach"
 
         # Prepare arguments for subprocess
         script_name = "run_mfp_analysis.py" if self.mode.get() == "Approach" else "run_mfp_analysis_ret.py"
-        args = [self.selected_file] + [variable_values.get(var, '') for var in ['k_c', 'fitbin', 'cfit_min', 'cfit_max', 'cthresh', 'dfit_win', 'dfit_off', 'ext', 'approach']]
+        args = [self.selected_file] + [str(variable_values.get(var, '')) for var in ['k_c', 'fitbin', 'cfit_min', 'cfit_max', 'cthresh', 'dfit_win', 'dfit_off', 'ext', 'approach', 'clear', 'out']]
 
         # Prepare confirmation message
         confirmation_message = f"Do you want to run {script_name} with the following parameters?\n\n"
-        confirmation_message += "\n".join([f"{var}: {value}" for var, value in zip(['name', 'k_c', 'fitbin', 'cfit_min', 'cfit_max', 'cthresh', 'dfit_win', 'dfit_off', 'ext', 'approach'], args)])
+        confirmation_message += "\n".join([f"{var}: {variable_values[var]}" for var in ['name', 'k_c', 'fitbin', 'cfit_min', 'cfit_max', 'cthresh', 'dfit_win', 'dfit_off', 'ext', 'approach', 'clear', 'out']])
 
         # Ask user to confirm running the script
         if messagebox.askyesno("Confirm", confirmation_message):
@@ -190,6 +193,7 @@ class MFPAnalysisApp(tk.Tk):
             messagebox.showinfo("Info", f"Script {script_name} has been run with the selected parameters.")
         else:
             messagebox.showinfo("Cancelled", "Script execution cancelled.")
+
 
 
 

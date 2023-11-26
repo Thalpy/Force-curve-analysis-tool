@@ -14,8 +14,12 @@ import shutil
 import warnings
 import logging
 import datetime
+import matplotlib
 import matplotlib.pyplot as plt
 import sys
+import gc
+
+matplotlib.use('Agg')
 
 import pyAFM_FC as afm
 
@@ -25,10 +29,11 @@ import pyAFM_FC as afm
 # python run_mfp_analysis.py S3/550mMS1.0.5Hz.nD.12nN 0.156 10 15 40 50 40 50 .jpg True
 
 # Command line arguments
-if len(sys.argv) < 10:
+if len(sys.argv) < 13:
     print("Not enough arguments provided.")
     sys.exit(1)
 
+# The first argument (sys.argv[0]) is the script name, so it is skipped.
 name = sys.argv[1]
 k_c = float(sys.argv[2])
 fitbin = int(sys.argv[3])
@@ -38,7 +43,14 @@ cthresh = int(sys.argv[6])
 dfit_win = int(sys.argv[7])
 dfit_off = int(sys.argv[8])
 ext = sys.argv[9]
-clear = sys.argv[10].lower() == 'true'
+out = sys.argv[10].lower() == 'true'
+clear = sys.argv[11].lower() == 'true'
+approach = sys.argv[12].lower() == 'true'
+
+
+# Make sure we don't have .txt at the end of the name
+if name[-4:] == '.txt':
+    name = name[:-4]
 
 # Autoprocessed stuff
 outdir = name + '_force_curves/'
@@ -60,13 +72,11 @@ for i in range (1, 101):
     elif i == 100:
         print("Over 100 Runfolders found, overwriting run 100.")
     
-# Make sure we don't have .txt at the end of the name
-if name[-4:] == '.txt':
-    name = name[:-4]
+
 
 #Extract processing
 if not os.path.exists(outdir):
-    res = afm.split_curves(name, k_c = k_c, ext = ext)
+    res = afm.split_curves(name, k_c = k_c, ext = ext) # Works
     
 #Initial run:
 if os.path.isfile(txtdir+'approach_force_curves.csv'):
@@ -75,10 +85,16 @@ else:
     slope = deriv_curves = afm.comp_def_deriv(name, cfit_min = cfit_min, cfit_max = cfit_max,
         dfit_win = dfit_win, dfit_off = dfit_off, fitbin =fitbin, k_c = k_c, prefix = prefix, out = True, ext = ext, clear = True)
 
+    plt.close('all')
+    gc.collect()
+    matplotlib.use('Agg')
+
     res_df, param_bin = afm.proc_force_sep(name, cfit_min = cfit_min, cfit_max = cfit_max,
         dfit_win = dfit_win, dfit_off = dfit_off, fitbin =fitbin, k_c = k_c, prefix = prefix,
         out = True, ext = ext, clear = False, min_cont_pts=3, slope = slope, approach = approach)
 
+plt.close('all')
+gc.collect()
 
 afm.plot_force_sep_res(name, res_df, prefix = prefix, binsize = 1.0, ext = ext)
 afm.plot_force_h_scaling(name, res_df, prefix = prefix, binsize = 0.5, ext = ext)
