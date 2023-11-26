@@ -25,7 +25,7 @@ import pyAFM_FC as afm
 # python run_mfp_analysis.py S3/550mMS1.0.5Hz.nD.12nN 0.156 10 15 40 50 40 50 .jpg True
 
 # Command line arguments
-if len(sys.argv) < 11:
+if len(sys.argv) < 10:
     print("Not enough arguments provided.")
     sys.exit(1)
 
@@ -54,13 +54,16 @@ outdir = name+'_force_curves/'
 for i in range (1, 101):
     txtdir = name+"_force_curves"+os.sep+(prefix+str(i)+"/")
     if not os.path.exists(txtdir):
-        prefix += i+"/"
+        prefix += str(i)+"/"
         break
     
     elif i == 100:
         print("Over 100 Runfolders found, overwriting run 100.")
     
-    
+# Make sure we don't have .txt at the end of the name
+if name[-4:] == '.txt':
+    name = name[:-4]
+
 #Extract processing
 if not os.path.exists(outdir):
     res = afm.split_curves(name, k_c = k_c, ext = ext)

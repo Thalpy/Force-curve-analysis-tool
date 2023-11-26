@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, Label, Entry, Button
 import os
 import re
+import subprocess
 
 # Function to extract variables from the file contents
 def extract_variables_from_log(text):
@@ -162,25 +163,35 @@ class MFPAnalysisApp(tk.Tk):
         if not self.selected_file:
             messagebox.showerror("Error", "No file selected")
             return
-        # Extract values from entries
-        variable_values = {var: entry.get() for var, entry in self.variable_entries.items()}
 
-        # Fill in default values if fields are empty
+        # Extract values from entries, but use the full path for 'name'
+        variable_values = {var: self.selected_file if var == 'name' else entry.get() for var, entry in self.variable_entries.items()}
+
+        # Fill in default values if fields are empty (excluding 'name')
         for var, entry in self.variable_entries.items():
-            if not entry.get():
+            if var != 'name' and not entry.get():
                 entry.insert(0, self.default_values.get(var, ''))
 
-        # Find the run folder
-        if self.selected_file:
-            if self.mode.get() == "Approach":
-                script_name = "run_mfp_analysis.py"
-            else:
-                script_name = "run_mfp_analysis_ret.py"
-            # Here we would call the modified 'run_mfp_analysis.py' script with variable_values and run_folder
-            # For now, just showing a message
-            messagebox.showinfo("Info", f"Run file: {self.selected_file}\nVariables: {variable_values}\nScript: {script_name}")
+        # Update variable_values with the new (or default) values (excluding 'name')
+        variable_values = {var: entry.get() for var, entry in self.variable_entries.items() if var != 'name'}
+
+        # Prepare arguments for subprocess
+        script_name = "run_mfp_analysis.py" if self.mode.get() == "Approach" else "run_mfp_analysis_ret.py"
+        args = [self.selected_file] + [variable_values.get(var, '') for var in ['k_c', 'fitbin', 'cfit_min', 'cfit_max', 'cthresh', 'dfit_win', 'dfit_off', 'ext', 'approach']]
+
+        # Prepare confirmation message
+        confirmation_message = f"Do you want to run {script_name} with the following parameters?\n\n"
+        confirmation_message += "\n".join([f"{var}: {value}" for var, value in zip(['name', 'k_c', 'fitbin', 'cfit_min', 'cfit_max', 'cthresh', 'dfit_win', 'dfit_off', 'ext', 'approach'], args)])
+
+        # Ask user to confirm running the script
+        if messagebox.askyesno("Confirm", confirmation_message):
+            # Run the script if user confirms
+            subprocess.run(["python", script_name] + args)
+            messagebox.showinfo("Info", f"Script {script_name} has been run with the selected parameters.")
         else:
-            messagebox.showerror("Error", "File not selected")
+            messagebox.showinfo("Cancelled", "Script execution cancelled.")
+
+
 
             
 
