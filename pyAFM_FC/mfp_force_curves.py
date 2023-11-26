@@ -32,7 +32,7 @@ mpl.rcParams['lines.linewidth'] = 2
 
 
 def split_curves(name, k_c = 0.188, ext = '.pdf'):
-    #split up a bunch of force curves
+    # Function to split up a bunch of force curves
 
 
     outdir = name+'_force_curves/'
