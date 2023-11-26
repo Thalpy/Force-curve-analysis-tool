@@ -3,3 +3,8 @@
 python3 -m venv myenv
 myenv\Scripts\activate
 pip install -r requirements.txt
+
+# THIS IS OLD BAD CODE
+# USER BEWARE
+
+I'll clean this up later.
