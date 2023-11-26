@@ -15,31 +15,39 @@ import warnings
 import logging
 import datetime
 import matplotlib.pyplot as plt
+import sys
 
 import pyAFM_FC as afm
 
-name = 'S3/550mMS1.0.5Hz.nD.12nN'
-k_c = 0.156
-fitbin = 10
-cfit_min = 15
-cfit_max = 40
-cthresh = 50
-dfit_win = 40
-dfit_off = 50
-ext = '.jpg'
-approach = True
+# Assuming the parameters are passed in the following order:
+# name, k_c, fitbin, cfit_min, cfit_max, cthresh, dfit_win, dfit_off, ext, approach
+# Example command line call:
+# python run_mfp_analysis.py S3/550mMS1.0.5Hz.nD.12nN 0.156 10 15 40 50 40 50 .jpg True
+
+# Command line arguments
+if len(sys.argv) < 11:
+    print("Not enough arguments provided.")
+    sys.exit(1)
+
+name = sys.argv[1]
+k_c = float(sys.argv[2])
+fitbin = int(sys.argv[3])
+cfit_min = int(sys.argv[4])
+cfit_max = int(sys.argv[5])
+cthresh = int(sys.argv[6])
+dfit_win = int(sys.argv[7])
+dfit_off = int(sys.argv[8])
+ext = sys.argv[9]
+clear = sys.argv[10].lower() == 'true'
+
+# Autoprocessed stuff
+outdir = name + '_force_curves/'
 
 #Autoprocessed stuff
 #Site = "S1" #unused
 prefix = 'Run' #unused
 outdir = name+'_force_curves/'
 #txtdir = name+"_force_curves"+os.sep+prefix
-
-#Prefix foldername
-if approach == True:
-    prefix = "apro_"+prefix
-else:
-    prefix = "ret_"+prefix
 
 #Check if Run folder exists
 
@@ -51,8 +59,6 @@ for i in range (1, 101):
     
     elif i == 100:
         print("Over 100 Runfolders found, overwriting run 100.")
-
-    
     
     
 #Extract processing

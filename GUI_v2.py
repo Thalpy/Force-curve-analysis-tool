@@ -31,13 +31,15 @@ def find_run_folder(file_path, mode):
     if not os.path.exists(force_curve_folder):
         return None
 
+    # Define the pattern based on the mode
     if mode == "Approach":
-        pattern = "Run"
+        pattern = r'^Run\d+$'  # Pattern for "Approach" mode (e.g., "Run14")
     else:
-        pattern = "ret_Run"
+        pattern = r'^ret_Run\d+_Ret$'  # Pattern for "Retract" mode (e.g., "ret_Run5_Ret")
 
-    run_folders = [f for f in os.listdir(force_curve_folder) if os.path.isdir(os.path.join(force_curve_folder, f)) and pattern in f]
-    
+    # Filter run folders based on the defined pattern
+    run_folders = [f for f in os.listdir(force_curve_folder) if os.path.isdir(os.path.join(force_curve_folder, f)) and re.match(pattern, f)]
+
     # Finding the folder with the highest number or "(this one)"
     selected_run_folder = None
     max_run_number = -1
@@ -45,16 +47,15 @@ def find_run_folder(file_path, mode):
         if "(this one)" in folder:
             selected_run_folder = folder
             break
-        # Adjusted regex to match the folder naming pattern for both modes
-        regex_pattern = r'Run(\d+)' if mode == "Approach" else r'ret_Run(\d+)_Ret'
-        run_number_match = re.search(regex_pattern, folder)
+        run_number_match = re.search(r'\d+', folder)
         if run_number_match:
-            run_number = int(run_number_match.group(1))
+            run_number = int(run_number_match.group(0))
             if run_number > max_run_number:
                 max_run_number = run_number
                 selected_run_folder = folder
 
     return os.path.join(force_curve_folder, selected_run_folder) if selected_run_folder else None
+
 
 # GUI Application
 class MFPAnalysisApp(tk.Tk):
@@ -115,7 +116,8 @@ class MFPAnalysisApp(tk.Tk):
 
             run_folder = find_run_folder(file_path, self.mode.get())
             if run_folder:
-                log_file_path = os.path.join(run_folder, 'approachparameter_log.txt')
+                log_file_name = 'retract_parameter_log.txt' if self.mode.get() == 'Retract' else 'approachparameter_log.txt'
+                log_file_path = os.path.join(run_folder, log_file_name)
                 if os.path.exists(log_file_path):
                     try:
                         with open(log_file_path, 'r') as file:
@@ -169,17 +171,16 @@ class MFPAnalysisApp(tk.Tk):
                 entry.insert(0, self.default_values.get(var, ''))
 
         # Find the run folder
-        run_folder = find_run_folder(self.selected_file)
-        if run_folder:
+        if self.selected_file:
             if self.mode.get() == "Approach":
                 script_name = "run_mfp_analysis.py"
             else:
                 script_name = "run_mfp_analysis_ret.py"
             # Here we would call the modified 'run_mfp_analysis.py' script with variable_values and run_folder
             # For now, just showing a message
-            messagebox.showinfo("Info", f"Run folder: {run_folder}\nVariables: {variable_values}\nScript: {script_name}")
+            messagebox.showinfo("Info", f"Run file: {self.selected_file}\nVariables: {variable_values}\nScript: {script_name}")
         else:
-            messagebox.showerror("Error", "Run folder not found")
+            messagebox.showerror("Error", "File not selected")
 
             
 
