@@ -46,6 +46,7 @@ ext = sys.argv[9]
 out = sys.argv[10].lower() == 'true'
 clear = sys.argv[11].lower() == 'true'
 approach = sys.argv[12].lower() == 'true'
+extra = sys.argv[13].lower() == 'true'
 
 
 # Make sure we don't have .txt at the end of the name
@@ -102,90 +103,91 @@ Fc = afm.get_contact_forces(name, res_df, prefix = prefix, binsize = 1.0, ext = 
 
 prefix = "cache/"
 
-#Scroll along binfit
-binfit_list = [0,0,Fc,0,0]
-xbinfit_list = range(-2,3)
-print(Fc)
-_fitbin = 0
-for i in range(-2,3):
-    if i == 0:
-        continue
-    
-    #Replace binfit with adjusted value
-    _fitbin = fitbin + i
-    
-    res_df, param_bin = afm.proc_force_sep(name, cfit_min = cfit_min, cfit_max = cfit_max,
-        dfit_win = dfit_win, dfit_off = dfit_off, fitbin =_fitbin, k_c = k_c, prefix = prefix,
-        out = True, ext = ext, clear = False, min_cont_pts=3, slope = slope, approach = approach)
-    
-    
-    binfit_list[i+2] = afm.get_contact_forces(name, res_df, prefix = prefix, binsize = 1.0, ext = ext)
-    
-    
-#Plot graph
-fig1, ax1 = plt.subplots(figsize=(10,4))
-ax1.plot(xbinfit_list, binfit_list, '+-')
-ax1.set_ylabel("Force at contact (N)")
-ax1.set_xlabel("Binsize range (+/- 2)")
-#ax1.set_xlim([-200,np.ceil(cfit_max+30)])
-plt.tight_layout()
-fig1.savefig(outdir+"_binsweep"+ext)
-plt.close(fig1)
+if extra: # If you can't get a good fit and want to run this 25 times in a row out of desparation.
+    #Scroll along binfit
+    binfit_list = [0,0,Fc,0,0]
+    xbinfit_list = range(-2,3)
+    print(Fc)
+    _fitbin = 0
+    for i in range(-2,3):
+        if i == 0:
+            continue
+        
+        #Replace binfit with adjusted value
+        _fitbin = fitbin + i
+        
+        res_df, param_bin = afm.proc_force_sep(name, cfit_min = cfit_min, cfit_max = cfit_max,
+            dfit_win = dfit_win, dfit_off = dfit_off, fitbin =_fitbin, k_c = k_c, prefix = prefix,
+            out = True, ext = ext, clear = False, min_cont_pts=3, slope = slope, approach = approach)
+        
+        
+        binfit_list[i+2] = afm.get_contact_forces(name, res_df, prefix = prefix, binsize = 1.0, ext = ext)
+        
+        
+    #Plot graph
+    fig1, ax1 = plt.subplots(figsize=(10,4))
+    ax1.plot(xbinfit_list, binfit_list, '+-')
+    ax1.set_ylabel("Force at contact (N)")
+    ax1.set_xlabel("Binsize range (+/- 2)")
+    #ax1.set_xlim([-200,np.ceil(cfit_max+30)])
+    plt.tight_layout()
+    fig1.savefig(outdir+"_binsweep"+ext)
+    plt.close(fig1)
 
-#Scroll along cfit_min
-cmin_list = [0,0,0,0,0,Fc,0,0,0,0,0]
-xc_list = range(-5,6)
-print(Fc)
-_cmin = 0
-for i in range(-5,6):
-    if i == 0:
-        continue
-    
-    #Replace cfit with adjusted value
-    _cmin = cfit_min + i
-    
-    res_df, param_bin = afm.proc_force_sep(name, cfit_min = _cmin, cfit_max = cfit_max,
-        dfit_win = dfit_win, dfit_off = dfit_off, fitbin = fitbin, k_c = k_c, prefix = prefix,
-        out = True, ext = ext, clear = False, min_cont_pts=3, slope = slope, approach = approach)
-    
-    
-    cmin_list[i+5] = afm.get_contact_forces(name, res_df, prefix = prefix, binsize = 1.0, ext = ext)
+    #Scroll along cfit_min
+    cmin_list = [0,0,0,0,0,Fc,0,0,0,0,0]
+    xc_list = range(-5,6)
+    print(Fc)
+    _cmin = 0
+    for i in range(-5,6):
+        if i == 0:
+            continue
+        
+        #Replace cfit with adjusted value
+        _cmin = cfit_min + i
+        
+        res_df, param_bin = afm.proc_force_sep(name, cfit_min = _cmin, cfit_max = cfit_max,
+            dfit_win = dfit_win, dfit_off = dfit_off, fitbin = fitbin, k_c = k_c, prefix = prefix,
+            out = True, ext = ext, clear = False, min_cont_pts=3, slope = slope, approach = approach)
+        
+        
+        cmin_list[i+5] = afm.get_contact_forces(name, res_df, prefix = prefix, binsize = 1.0, ext = ext)
 
-#Plot graph
-fig1, ax1 = plt.subplots(figsize=(10,4))
-ax1.plot(xc_list, cmin_list, '+-')
-ax1.set_ylabel("Force at contact (N)")
-ax1.set_xlabel("Minimum contact parameter range (+/- 5)")
-#ax1.set_xlim([-200,np.ceil(cfit_max+30)])
-plt.tight_layout()
-fig1.savefig(outdir+"_cminsweep"+ext)
-plt.close(fig1)
+    #Plot graph
+    fig1, ax1 = plt.subplots(figsize=(10,4))
+    ax1.plot(xc_list, cmin_list, '+-')
+    ax1.set_ylabel("Force at contact (N)")
+    ax1.set_xlabel("Minimum contact parameter range (+/- 5)")
+    #ax1.set_xlim([-200,np.ceil(cfit_max+30)])
+    plt.tight_layout()
+    fig1.savefig(outdir+"_cminsweep"+ext)
+    plt.close(fig1)
 
-#Scroll along cfit_max
-cmax_list = [0,0,0,0,0,Fc,0,0,0,0,0]
-print(Fc)
-_cmax = 0
-for i in range(-5,6):
-    if i == 0:
-        continue
-    
-    #Replace cfit with adjusted value
-    _cmax = cfit_max + i
-    
-    res_df, param_bin = afm.proc_force_sep(name, cfit_min = cfit_min, cfit_max = _cmax,
-        dfit_win = dfit_win, dfit_off = dfit_off, fitbin = fitbin, k_c = k_c, prefix = prefix,
-        out = True, ext = ext, clear = False, min_cont_pts=3, slope = slope, approach = approach)
-    
-    
-    cmax_list[i+5] = afm.get_contact_forces(name, res_df, prefix = prefix, binsize = 1.0, ext = ext)
+    #Scroll along cfit_max
+    cmax_list = [0,0,0,0,0,Fc,0,0,0,0,0]
+    print(Fc)
+    _cmax = 0
+    for i in range(-5,6):
+        if i == 0:
+            continue
+        
+        #Replace cfit with adjusted value
+        _cmax = cfit_max + i
+        
+        res_df, param_bin = afm.proc_force_sep(name, cfit_min = cfit_min, cfit_max = _cmax,
+            dfit_win = dfit_win, dfit_off = dfit_off, fitbin = fitbin, k_c = k_c, prefix = prefix,
+            out = True, ext = ext, clear = False, min_cont_pts=3, slope = slope, approach = approach)
+        
+        
+        cmax_list[i+5] = afm.get_contact_forces(name, res_df, prefix = prefix, binsize = 1.0, ext = ext)
 
 
-#Plot graph
-fig1, ax1 = plt.subplots(figsize=(10,4))
-ax1.plot(xc_list, cmax_list, '+-')
-ax1.set_ylabel("Force at contact (N)")
-ax1.set_xlabel("Maximum contact parameter range (+/- 5)")
-#ax1.set_xlim([-200,np.ceil(cfit_max+30)])
-plt.tight_layout()
-fig1.savefig(outdir+"_cmaxsweep"+ext)
-plt.close(fig1)
+    #Plot graph
+    fig1, ax1 = plt.subplots(figsize=(10,4))
+    ax1.plot(xc_list, cmax_list, '+-')
+    ax1.set_ylabel("Force at contact (N)")
+    ax1.set_xlabel("Maximum contact parameter range (+/- 5)")
+    #ax1.set_xlim([-200,np.ceil(cfit_max+30)])
+    plt.tight_layout()
+    fig1.savefig(outdir+"_cmaxsweep"+ext)
+    plt.close(fig1)

@@ -90,6 +90,11 @@ class MFPAnalysisApp(tk.Tk):
         self.clear_button.pack(pady=10)
         self.create_variable_fields()
 
+        self.extra_var = tk.BooleanVar()
+        self.extra_checkbox = Checkbutton(self, text="Extra", variable=self.extra_var)
+        self.extra_checkbox.pack()
+
+
     def create_variable_fields(self):
         self.default_values = {
             'name': '', 'k_c': '0.185', 'binsize': '1.0', 'dfit_win': '45', 'dfit_off': '65',
@@ -166,6 +171,7 @@ class MFPAnalysisApp(tk.Tk):
 
         # Extract values from entries
         variable_values = {var: entry.get() for var, entry in self.variable_entries.items()}
+        extra = self.extra_var.get()
 
         # Fill in default values if fields are empty
         for var, entry in self.variable_entries.items():
@@ -180,7 +186,7 @@ class MFPAnalysisApp(tk.Tk):
 
         # Prepare arguments for subprocess
         script_name = "run_mfp_analysis.py" if self.mode.get() == "Approach" else "run_mfp_analysis_ret.py"
-        args = [self.selected_file] + [str(variable_values.get(var, '')) for var in ['k_c', 'fitbin', 'cfit_min', 'cfit_max', 'cthresh', 'dfit_win', 'dfit_off', 'ext', 'approach', 'clear', 'out']]
+        args = [self.selected_file] + [str(variable_values.get(var, '')) for var in ['k_c', 'fitbin', 'cfit_min', 'cfit_max', 'cthresh', 'dfit_win', 'dfit_off', 'ext', 'approach', 'clear', 'out'+ [str(extra)]]
 
         # Prepare confirmation message
         confirmation_message = f"Do you want to run {script_name} with the following parameters?\n\n"
