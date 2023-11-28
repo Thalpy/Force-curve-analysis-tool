@@ -92,8 +92,9 @@ def proc_force_sep(name, k_c = 0.188, binsize = 1.0, dfit_win = 50, dfit_off = 6
     fig, ax = plt.subplots(figsize=(10,4))
     i=0
 
-    try:
-        for fullname in namelist:
+
+    for fullname in namelist:
+        try:
             #the files in 'namelist' have names structured like '005_approach.txt'
             #this parses the name and pulls out '5' as the index
             #would need to change if files names are different
@@ -137,7 +138,7 @@ def proc_force_sep(name, k_c = 0.188, binsize = 1.0, dfit_win = 50, dfit_off = 6
             print('aligning '+str(numbCountJ).zfill(3))
 
             zp, df, sep, zpb, sepb, deriv_df, zc, zc1 = align_contact_reg(zpb, dfb, dfb_std, zp,
-                df, w, dfit_used, cfit_max, out, defldir, derivdir, numbCountJ, ext, slope)
+                df, w, dfit_used, cfit_max, out, defldir, derivdir, numbCountJ, ext, slope, cthresh)
 
             zp_arr = np.concatenate((zp_arr, zp), axis=0)
             df_arr = np.concatenate((df_arr, df), axis=0)
@@ -181,10 +182,10 @@ def proc_force_sep(name, k_c = 0.188, binsize = 1.0, dfit_win = 50, dfit_off = 6
             ax.set_xlabel('zp (nm)')
             plt.tight_layout()
             i=i+1
-    except:
-        print('error in curve ' +str(numbCountJ).zfill(3))
-        print("failed to process curve!")
-        pass
+        except:
+            print('error in curve ' +str(numbCountJ).zfill(3))
+            print("failed to process curve!")
+            pass
 
     print('%d curves processed out of %d total force curves' % (i, len(namelist)))
 
@@ -266,7 +267,6 @@ def comp_def_deriv(name, k_c = 0.188, binsize = 1.0, dfit_win = 50, dfit_off = 6
     	in_txtdir = name+"_force_curves"+os.sep+"approach"
     else:
         in_txtdir = name+"_force_curves"+os.sep+"retract"
-        prefix = "ret_"+prefix
 
     namelist = sorted(glob.glob(in_txtdir+os.sep+'*.txt'))
 
@@ -478,7 +478,7 @@ def bin_z_df(zp, df, fitbin):
 
 
 def align_contact_reg(zpb, dfb, dfb_std, zp, df, w, dfit_win, cfit_max, out,
-    defldir, derivdir, numbCountJ, ext, slope):
+    defldir, derivdir, numbCountJ, ext, slope, cthresh):
 
     zpcfit = zpb[w]
     dfcfit = dfb[w]
@@ -537,17 +537,22 @@ def align_contact_reg(zpb, dfb, dfb_std, zp, df, w, dfit_win, cfit_max, out,
 
     if out:
         fig1, ax1 = plt.subplots(figsize=(10,4))
-        ax1.plot(zp,df , '+-')
-        ax1.plot(zpcfit,dfcfit , 'o', color = 'purple')
-        ax1.plot(zp[dfit_win:2*dfit_win],df[dfit_win:2*dfit_win] , 'o', color = 'orange')
-        ax1.plot(zz,back, 'k-')
+        ax1.plot(zp, df , '+-')
+        ax1.plot(zpcfit, dfcfit , 'o', color = 'purple')
+        ax1.plot(zp[dfit_win:2*dfit_win], df[dfit_win:2*dfit_win] , 'o', color = 'orange')
+        ax1.plot(zz, back, 'k-')
+
+        # Find the z-position where the deflection first exceeds cthresh
+        cthresh_crossing = np.argmax(df > cthresh)  # This assumes df is sorted in ascending z-position
+        if cthresh_crossing.size > 0 and df[cthresh_crossing] > cthresh:
+            zp_cthresh = zp[cthresh_crossing]
+            ax1.plot(zp_cthresh, cthresh, 'rx', markersize=10)  # Plot a red 'X' at the threshold crossing
+
         ax1.set_ylabel('deflection (nm)')
         ax1.set_xlabel(r'$z_p-z_c$ (nm)')
-        ax1.set_xlim([-200,np.ceil(cfit_max/slope+10)])
+        ax1.set_xlim([-200, np.ceil(cfit_max/slope+10)])
         plt.tight_layout()
         fig1.savefig(defldir+str(numbCountJ).zfill(3)+'_def_zc'+ext)
-
         plt.close(fig1)
-
 
     return zp, df, sep, zpb, sepb, deriv_df, zc, zc1

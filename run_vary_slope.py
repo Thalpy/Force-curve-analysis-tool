@@ -52,7 +52,7 @@ for s in slopes:
 
     afm.plot_force_sep_res(name, res_df, prefix = prefix, binsize = 1.0, ext = '.pdf')
     #afm.fit_force_sep(name, res_df, prefix = prefix, binsize = 1.0, ext = '.pdf')
-    fc = afm.get_contact_forces(name, res_df, prefix = prefix, binsize = 1.0, ext = '.pdf')
+    fc, fc_stdev = afm.get_contact_forces(name, res_df, prefix = prefix, binsize = 1.0, ext = '.pdf')
 
     dfs = pd.DataFrame({
         'slope': [s],

@@ -39,7 +39,6 @@ def proc_force_sep(name, k_c = 0.188, binsize = 1.0, dfit_win = 50, dfit_off = 6
     	in_txtdir = name+"_force_curves"+os.sep+"approach"
     else:
         in_txtdir = name+"_force_curves"+os.sep+"retract"
-        prefix = "ret_"+prefix
 
     namelist = sorted(glob.glob(in_txtdir+os.sep+'*.txt'))
 
@@ -259,7 +258,6 @@ def comp_def_deriv(name, k_c = 0.188, binsize = 1.0, dfit_win = 50, dfit_off = 6
     	in_txtdir = name+"_force_curves"+os.sep+"approach"
     else:
         in_txtdir = name+"_force_curves"+os.sep+"retract"
-        prefix = "ret_"+prefix
 
     namelist = sorted(glob.glob(in_txtdir+os.sep+'*.txt'))
 

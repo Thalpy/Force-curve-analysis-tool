@@ -110,3 +110,36 @@ def split_curves(name, k_c = 0.188, ext = '.pdf'):
 
         np.savetxt(atxtdir+str(i).zfill(3)+'_approach.txt', np.vstack((Zpiezo[0:split-1], disp[0:split-1], force[0:split-1]) ).T, delimiter='\t', newline='\n', header='Zpiezo \t Defl \t Force')
         np.savetxt(rtxtdir+str(i).zfill(3)+'_retract.txt', np.vstack((Zpiezo[split:-1], disp[split:-1], force[split:-1]) ).T, delimiter='\t', newline='\n', header='Zpiezo \t Defl \t Force')
+
+        # Zoom in on the transition region for the first curve as an example
+        disp = dis_pos_full[:, 0]
+        disp = disp[~np.isnan(disp)]
+        Zpiezo = dis_pos_full[:, 1]
+        Zpiezo = Zpiezo[~np.isnan(Zpiezo)]
+        disp_offset = 0
+        force = k_c * (disp - disp_offset) * 1e9
+        Zpiezo = Zpiezo * 1e6  # Convert from meters to micrometers
+
+        # Finding the transition point for zooming
+        # Assuming the transition occurs at the point where the force starts increasing from the baseline
+        baseline_noise = np.std(force[0:split-1])  # Calculate the standard deviation of the baseline noise
+        baseline = np.mean(force[0:split-1])  # Calculate baseline force before the transition
+        threshold = baseline + 5 * baseline_noise  # Set threshold as a multiple of noise level above the baseline
+
+        transition_indices = np.where(force > threshold)[0]
+        transition_index = transition_indices[0] if transition_indices.size > 0 else split
+        zoom_window=100e-3  # Zoom window size in micrometers
+
+        # Define the zoom region around the transition
+        half_window = int(zoom_window / (Zpiezo[1] - Zpiezo[0]) / 2)
+        start_index = max(transition_index - half_window, 0)
+        end_index = min(transition_index + half_window, len(Zpiezo))
+
+        # Create a plot for the zoomed region
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.plot(Zpiezo[start_index:end_index], force[start_index:end_index], 'b-')
+        ax.set_ylabel('Force (nN)')
+        ax.set_xlabel('Zpiezo (um)')
+        plt.tight_layout()
+        fig.savefig(forcedir+str(i).zfill(3)+'_force_Zpiezo_zoom'+ext)
+

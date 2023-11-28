@@ -37,7 +37,7 @@ def plot_force_sep_res(name, force_curves, prefix = '', binsize = 1.0, ext = '.p
     if approach:
         outbase = name+"_force_curves"+os.sep+prefix+"approach_"
     else:
-        outbase = name+"_force_curves"+os.sep+'ret_'+prefix+"retract_"
+        outbase = name+"_force_curves"+os.sep+prefix+"retract_"
 
     zp_arr = force_curves['zp'].to_numpy()
     force_arr = force_curves['force'].to_numpy()
@@ -115,7 +115,7 @@ def plot_force_sep_c_nc(name, force_curves_c, force_curves_nc, prefix = '', bins
     if approach:
         outbase = name+"_force_curves"+os.sep+prefix+"approach_"
     else:
-        outbase = name+"_force_curves"+os.sep+'ret_'+prefix+"retract_"
+        outbase = name+"_force_curves"+os.sep+prefix+"retract_"
 
     zp_c_arr = force_curves_c['zp'].to_numpy()
     force_c_arr = force_curves_c['force'].to_numpy()
@@ -187,13 +187,17 @@ def plot_force_sep_c_nc(name, force_curves_c, force_curves_nc, prefix = '', bins
     # plt.close(fig)
 
 def get_contact_forces(name, force_curves, prefix = '',
-    thresh = 0.0, binsize = 1.0, ext = '.pdf', out = True, smooth_win=15, approach = True):
+                       thresh = 0.0, binsize = 1.0, ext = '.pdf', out = True, 
+                       smooth_win = 15, approach = True):
 
-    outbase = name+"_force_curves"+os.sep+prefix+"approach_"
-    outdir = outbase+'force_curves'+os.sep
-    contdir = outdir+'contact'+os.sep
+    # Adjust the base path for retract curves
+    curve_type = "retract" if not approach else "approach"
+    outbase = f"{name}_force_curves{os.sep}{prefix}{curve_type}_"
+    outdir = outbase + 'force_curves' + os.sep
+    contdir = outdir + 'contact' + os.sep
 
-    curve_param = pd.read_csv(outbase+'curve_param.csv')
+    # Read curve parameters
+    curve_param = pd.read_csv(outbase + 'curve_param.csv')
     curve_param['F_cont'] = np.nan
 
     if out:
@@ -202,91 +206,96 @@ def get_contact_forces(name, force_curves, prefix = '',
         if not os.path.exists(contdir):
             os.makedirs(contdir)
 
+    # Process force curve data
     zp_arr = force_curves['zp'].to_numpy()
     force_arr = force_curves['force'].to_numpy()
     df_arr = force_curves['df'].to_numpy()
     sep_arr = force_curves['sep'].to_numpy()
 
-    k_c = force_arr[0]/df_arr[0]
+    k_c = force_arr[0] / df_arr[0]
 
+    # Binning the data
     zp_bin, force_bin, force_std = binscatter(zp_arr, force_arr, binsize, minn=3)
     zp_bin, sep_bin, sep_std = binscatter(zp_arr, sep_arr, binsize, minn=3)
 
+    # Trimming the data
     zp_bin = zp_bin[3:-3]
     force_bin = force_bin[3:-3]
     force_std = force_std[3:-3]
     sep_std = sep_std[3:-3]
     sep_bin = sep_bin[3:-3]
-    df_bin = force_bin/k_c
-    df_std = force_std/k_c
+    df_bin = force_bin / k_c
+    df_std = force_std / k_c
 
-    #find first point where sep_bin crosses threshold 'thresh'
-    cross= np.where(np.diff(np.sign(sep_bin-thresh)))[0]
+    # Identifying the threshold crossing point
+    cross = np.where(np.diff(np.sign(sep_bin - thresh)))[0]
     cross = np.min(cross)
 
-    #linear interp to get contact (sep =0)
-    x0=sep_bin[cross+1]
-    x1=sep_bin[cross]
-    y0 = force_bin[cross+1]
+    # Linear interpolation to find contact point
+    x0 = sep_bin[cross + 1]
+    x1 = sep_bin[cross]
+    y0 = force_bin[cross + 1]
     y1 = force_bin[cross]
-    f_c = (y0*x1 - y1*x0)/(x1-x0)
+    f_c = (y0 * x1 - y1 * x0) / (x1 - x0)
 
+    # Plotting the overall force-separation curve
     fmax = np.ceil(np.max(force_bin))
-    fig, ax = plt.subplots(figsize=(8,5))
-    ax.errorbar(sep_bin,force_bin, yerr = force_std , fmt='-o')
-    ax.plot(0,f_c, 'r^', zorder =100)
-    ax.axvline(x=0.0, color='k', zorder = 100)
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.errorbar(sep_bin, force_bin, yerr=force_std, fmt='-o')
+    ax.plot(0, f_c, 'r^', zorder=100)
+    ax.axvline(x=0.0, color='k', zorder=100)
     ax.set_ylabel('Force (nN)')
     ax.set_xlabel(r'$z_{sep}$ (nm)')
-    ax.set_xlim([-1,50])
-    ax.set_ylim([.01,fmax])
+    ax.set_xlim([-1, 50])
+    ax.set_ylim([0.01, fmax])
     ax.set_yscale("log")
     plt.tight_layout()
-    fig.savefig(outbase+'force_sep_log_lin_cont'+ext)
+    fig.savefig(outbase + 'force_sep_log_lin_cont' + ext)
     plt.close(fig)
 
+    # Processing individual force curves
     curve_param = curve_param.set_index('index')
-    #force_curves = force_curves.groupby(['index'])
-
-    for i in force_curves['index'].unique() :
-        print('finding contact: '+str(i))
+    for i in force_curves['index'].unique():
+        print('finding contact: ' + str(i))
         dfi = force_curves.groupby(['index']).get_group(i)
         force = dfi['force'].to_numpy()
         sep = dfi['sep'].to_numpy()
 
+        # Applying smoothing filter
         sep = savgol_filter(sep, smooth_win, 3)
         force = savgol_filter(force, smooth_win, 3)
 
-        cross= np.where(np.diff(np.sign(sep-thresh)))[0]
+        # Finding contact point
+        cross = np.where(np.diff(np.sign(sep - thresh)))[0]
         cross = np.min(cross)
 
-        #linear interp to get Contact (sep =0)
-        x0=sep[cross+1]
-        x1=sep[cross]
-        y0 = force[cross+1]
+        # Linear interpolation for contact force
+        x0 = sep[cross + 1]
+        x1 = sep[cross]
+        y0 = force[cross + 1]
         y1 = force[cross]
-        fci = (y0*x1 - y1*x0)/(x1-x0)
+        fci = (y0 * x1 - y1 * x0) / (x1 - x0)
 
-
-        fig, ax = plt.subplots(figsize=(8,5))
-        ax.plot(sep,force, '-o')
-        ax.plot(0,fci, 'r^', zorder =100)
-        ax.axvline(x=0.0, color='k', zorder = 100)
+        # Plotting individual force-separation curves
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.plot(sep, force, '-o')
+        ax.plot(0, fci, 'r^', zorder=100)
+        ax.axvline(x=0.0, color='k', zorder=100)
         ax.set_ylabel('Force (nN)')
         ax.set_xlabel(r'$z_{sep}$ (nm)')
-        ax.set_xlim([-1,50])
-        ax.set_ylim([.01,fmax])
+        ax.set_xlim([-1, 50])
+        ax.set_ylim([0.01, fmax])
         ax.set_yscale("log")
         plt.tight_layout()
-        fig.savefig(contdir+str(i).zfill(3)+'_force_sep_cont'+ext)
+        fig.savefig(contdir + str(i).zfill(3) + '_force_sep_cont' + ext)
         plt.close(fig)
 
-        curve_param.loc[i,'F_cont']=fci
+        curve_param.loc[i, 'F_cont'] = fci
 
-    curve_param.to_csv(outbase+'curve_param.csv')
+    # Updating curve parameters
+    curve_param.to_csv(outbase + 'curve_param.csv')
 
-    print('contact force = %.3f' % f_c)
-
+    # Plotting the histogram of contact forces
     fig, ax = plt.subplots(figsize=(10,4))
     f_c_arr = curve_param['F_cont'].to_numpy()
     f_c_arr = f_c_arr[~np.isnan(f_c_arr)]
@@ -295,72 +304,78 @@ def get_contact_forces(name, force_curves, prefix = '',
     f_c_std = np.std(f_c_arr)
     ax.set_ylabel('Counts')
     ax.set_xlabel(r'Contact Force (nN)')
-    ax.set_title('Contact Force = %.3f +/- %.3f' % (mean_f_c, f_c_std ) )
-    #ax.set_xlim([-1,np.ceil(cfit_max)])
-    #ax.set_ylim([-5,np.ceil(cfit_max)])
+    ax.set_title('Contact Force = %.3f +/- %.3f' % (mean_f_c, f_c_std))
     plt.tight_layout()
-    fig.savefig(outbase+'f_c_hist'+ext)
+    fig.savefig(outbase + 'f_c_hist' + ext)
     plt.close(fig)
 
-
-    return f_c
+    return f_c, f_c_std
 
 def plot_force_h_scaling(name, force_curves, prefix = '',
-    thresh = 0.0, binsize = 1.0, ext = '.pdf', out = True):
+                         thresh = 0.0, binsize = 1.0, ext = '.pdf', out = True, approach = True):
 
-    outbase = name+"_force_curves"+os.sep+prefix+"approach_"
-    outdir = outbase+'force_curves'+os.sep
-    contdir = outdir+'contact'+os.sep
+    # Adjust the base path for retract curves
+    curve_type = "retract" if not approach else "approach"
+    outbase = f"{name}_force_curves{os.sep}{prefix}{curve_type}_"
+    outdir = outbase + 'force_curves' + os.sep
+    contdir = outdir + 'contact' + os.sep
 
-    curve_param = pd.read_csv(outbase+'curve_param.csv')
+    # Read curve parameters
+    curve_param = pd.read_csv(outbase + 'curve_param.csv')
     if out:
         if not os.path.exists(outdir):
             os.makedirs(outdir)
         if not os.path.exists(contdir):
             os.makedirs(contdir)
 
+    # Process force curve data
     zp_arr = force_curves['zp'].to_numpy()
     force_arr = force_curves['force'].to_numpy()
     df_arr = force_curves['df'].to_numpy()
     sep_arr = force_curves['sep'].to_numpy()
 
-    k_c = force_arr[0]/df_arr[0]
+    k_c = force_arr[0] / df_arr[0]
 
+    # Binning the data
     zp_bin, force_bin, force_std = binscatter(zp_arr, force_arr, binsize, minn=3)
     zp_bin, sep_bin, sep_std = binscatter(zp_arr, sep_arr, binsize, minn=3)
 
+    # Trimming the data
     zp_bin = zp_bin[3:-3]
     force_bin = force_bin[3:-3]
     force_std = force_std[3:-3]
     sep_std = sep_std[3:-3]
     sep_bin = sep_bin[3:-3]
-    df_bin = force_bin/k_c
-    df_std = force_std/k_c
+    df_bin = force_bin / k_c
+    df_std = force_std / k_c
 
-    #find first point where sep_bin crosses threshold 'thresh'
-    cross= np.where(np.diff(np.sign(sep_bin-thresh)))[0]
+    # Identifying the threshold crossing point
+    cross = np.where(np.diff(np.sign(sep_bin - thresh)))[0]
     cross = np.min(cross)
 
-    #only take non-contact part of force curves
+    # Taking only the relevant part of the force curve
+    # For retract curves, this might be adjusted based on specific analysis requirements
     force_bin = force_bin[0:cross]
     force_std = force_std[0:cross]
     sep_std = sep_std[0:cross]
     sep_bin = sep_bin[0:cross]
 
-    force_h_scaled = force_bin*sep_bin
-    force_h_std = np.sqrt( (sep_bin**2)*(force_std**2)+(force_bin**2)*(sep_std**2))
+    # Scaling the force
+    force_h_scaled = force_bin * sep_bin
+    force_h_std = np.sqrt((sep_bin**2) * (force_std**2) + (force_bin**2) * (sep_std**2))
 
-    fig, ax = plt.subplots(figsize=(8,5))
-    ax.errorbar(sep_bin,force_h_scaled, yerr = force_std , fmt='-o')
+    # Plotting
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.errorbar(sep_bin, force_h_scaled, yerr=force_std, fmt='-o')
     ax.set_ylabel('Fh (nN*nm)')
     ax.set_xlabel(r'$h$ (nm)')
     ax.set_xlim([0.1, 100])
-    #ax.set_ylim([.01,fmax])
     ax.set_yscale("log")
     ax.set_xscale("log")
     plt.tight_layout()
-    fig.savefig(outbase+'force_h'+ext)
+    fig.savefig(outbase + 'force_h' + ext)
     plt.close(fig)
+
 
 def profile_attractive_forces(name, force_curves, prefix = '', far_thresh = 60,
     thresh = 0.0, binsize = 1.0, ext = '.pdf', out = True, smooth_win=15, approach = False):
@@ -368,7 +383,7 @@ def profile_attractive_forces(name, force_curves, prefix = '', far_thresh = 60,
     if approach:
         outbase = name+"_force_curves"+os.sep+prefix+"approach_"
     else:
-        outbase = name+"_force_curves"+os.sep+'ret_'+prefix+"retract_"
+        outbase = name+"_force_curves"+os.sep+prefix+"retract_"
 
     outdir = outbase+'force_curves'+os.sep
     attrdir = outdir+'attractive'+os.sep
