@@ -23,6 +23,23 @@ matplotlib.use('Agg')
 
 import pyAFM_FC as afm
 
+def remove_skipped_files(folder_path, skip_list):
+    removed_dir = os.path.join(folder_path, 'Removed')
+    if not os.path.exists(removed_dir):
+        os.makedirs(removed_dir)
+    
+    files = os.listdir(folder_path)
+    for file in files:
+        if file.endswith('.txt'):
+            # Extract the file number
+            file_number = int(''.join(filter(str.isdigit, file)))
+            # Check if the file number is in the skip list
+            if file_number in skip_list:
+                # Move the file to the 'Removed' directory
+                shutil.move(os.path.join(folder_path, file), os.path.join(removed_dir, file))
+                print(f"File {file} moved to 'Removed' directory.")
+
+
 # Assuming the parameters are passed in the following order:
 # name, k_c, fitbin, cfit_min, cfit_max, cthresh, dfit_win, dfit_off, ext, approach
 # Example command line call:
@@ -87,6 +104,17 @@ if not os.path.exists(outdir):
 if not os.path.exists(outdir + "approach/") or not os.path.exists(outdir + "retract/"):
     res = afm.split_curves(name, k_c = k_c, ext = ext) # Works
 
+# Skip designated files
+# List of file numbers to skip
+skip_list = [0]  # Update this list as needed
+
+# Assuming 'approach' variable is True if processing approach files, False for retract files
+approach_or_retract_folder = "approach" if approach else "retract"
+approach_or_retract_path = os.path.join(outdir, approach_or_retract_folder)
+
+# Call the function to remove skipped files
+remove_skipped_files(approach_or_retract_path, skip_list)
+
 #Initial run:
 if os.path.isfile(txtdir+'approach_force_curves.csv'):
     res_df = pd.read_csv(txtdir+'approach_force_curves.csv')
@@ -107,11 +135,9 @@ gc.collect()
 
 afm.plot_force_sep_res(name, res_df, prefix = prefix, binsize = binsize, ext = ext, approach = approach)
 afm.plot_force_h_scaling(name, res_df, prefix = prefix, binsize = binsize, ext = ext, approach = approach)
-if approach:
-    Fc, fc_stdev = afm.get_contact_forces(name, res_df, prefix = prefix, ext = ext, approach = approach)
-else:
-    force_curves_c, force_curves_nc = afm.profile_attractive_forces(name, res_df, prefix = prefix, binsize = binsize, ext = ext, approach = approach)
-    afm.plot_force_sep_c_nc(name, force_curves_c, force_curves_nc, prefix = prefix, binsize = 2.0, ext = ext, approach = approach)
+Fc, fc_stdev = afm.get_contact_forces(name, res_df, prefix = prefix, ext = ext, approach = approach)
+force_curves_c, force_curves_nc = afm.profile_attractive_forces(name, res_df, prefix = prefix, binsize = binsize, ext = ext, approach = approach)  
+afm.plot_force_sep_c_nc(name, force_curves_c, force_curves_nc, prefix = prefix, binsize = 2.0, ext = ext, approach = approach)
 
 prefix = "cache/"
 

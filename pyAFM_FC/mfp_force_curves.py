@@ -141,5 +141,5 @@ def split_curves(name, k_c = 0.188, ext = '.pdf'):
         ax.set_ylabel('Force (nN)')
         ax.set_xlabel('Zpiezo (um)')
         plt.tight_layout()
-        fig.savefig(forcedir+str(i).zfill(3)+'_force_Zpiezo_zoom'+ext)
+        #fig.savefig(forcedir+str(i).zfill(3)+'_force_Zpiezo_zoom'+ext) #Broken atm
 

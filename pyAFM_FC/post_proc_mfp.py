@@ -413,99 +413,102 @@ def profile_attractive_forces(name, force_curves, prefix = '', far_thresh = 60,
     #force_curves = force_curves.groupby(['index'])
 
     for i in force_curves['index'].unique() :
-        print('finding contact: '+str(i))
-        dfi = force_curves.groupby(['index']).get_group(i)
-        force = dfi['force'].to_numpy()
-        sep = dfi['sep'].to_numpy()
-        zp = dfi['zp'].to_numpy()
-        df = dfi['df'].to_numpy()
+        try:
+            print('finding contact: '+str(i))
+            dfi = force_curves.groupby(['index']).get_group(i)
+            force = dfi['force'].to_numpy()
+            sep = dfi['sep'].to_numpy()
+            zp = dfi['zp'].to_numpy()
+            df = dfi['df'].to_numpy()
 
 
-        sep_s = savgol_filter(sep, smooth_win, 3)
-        force_s = savgol_filter(force, smooth_win, 3)
-        zp_s = savgol_filter(zp, 2*smooth_win+1, 3)
-        df_s = savgol_filter(df, 2*smooth_win+1, 3)
+            sep_s = savgol_filter(sep, smooth_win, 3)
+            force_s = savgol_filter(force, smooth_win, 3)
+            zp_s = savgol_filter(zp, 2*smooth_win+1, 3)
+            df_s = savgol_filter(df, 2*smooth_win+1, 3)
 
-        deriv_df = np.gradient(df_s, zp_s)
+            deriv_df = np.gradient(df_s, zp_s)
 
-        cross= np.where(np.diff(np.sign(sep_s-thresh)))[0]
-        cross = np.min(cross)
+            cross= np.where(np.diff(np.sign(sep_s-thresh)))[0]
+            cross = np.min(cross)
 
-        #linear interp to get Contact (sep =0)
-        x0=sep_s[cross+1]
-        x1=sep_s[cross]
-        y0 = force_s[cross+1]
-        y1 = force_s[cross]
-        fci = (y0*x1 - y1*x0)/(x1-x0)
-
-
-        far= np.where(np.diff(np.sign(sep-far_thresh)))[0]
-        far = np.min(far)
-
-        f_min = np.min(force[far:cross])
-        min_loc = np.argmin(force[far:cross])+far
-        sep_min = sep[min_loc] #separation at F_min
-        if (sep_min > 30):
-            f_min = 0  # if min is too far away from contact point, it's just noise, not attraction
-
-        #find points right before/after any jump to/from contact
-        #data here captures transient motion of cantelever, not ture force profile
-        bad = (deriv_df <= -1.25)
-
-        bad[min_loc::] = False
-        if np.sum(bad) >2:
-            badrange = np.where(bad)[0]
-            bright = badrange[-1]
-            if len(badrange[badrange>far])>0:
-                bleft = badrange[badrange>far][0]
-            else:
-                bleft = bright
-            #print(far, bleft, bright)
-            bad[bleft:bright] = True
-
-        sep_g = sep[~bad]
-        force_g = force[~bad]
-        df_g = df[~bad]
-        zp_g = zp[~bad]
+            #linear interp to get Contact (sep =0)
+            x0=sep_s[cross+1]
+            x1=sep_s[cross]
+            y0 = force_s[cross+1]
+            y1 = force_s[cross]
+            fci = (y0*x1 - y1*x0)/(x1-x0)
 
 
-        fig, ax = plt.subplots(figsize=(8,5))
-        ax.plot(sep_g,force_g, '-o')
-        ax.plot(sep[cross:-1],force[cross:-1], 'o', color='purple')
-        ax.plot(0,fci, 'r^', zorder =100)
-        ax.plot(sep_min,f_min, 'gs', zorder =100)
-        ax.axvline(x=0.0, color='k', zorder = 100)
-        ax.set_ylabel('Force (nN)')
-        ax.set_xlabel(r'$z_{sep}$ (nm)')
-        ax.set_xlim([-1,50])
+            far= np.where(np.diff(np.sign(sep-far_thresh)))[0]
+            far = np.min(far)
 
-        plt.tight_layout()
-        fig.savefig(attrdir+str(i).zfill(3)+'_force_sep_attr'+ext)
-        plt.close(fig)
+            f_min = np.min(force[far:cross])
+            min_loc = np.argmin(force[far:cross])+far
+            sep_min = sep[min_loc] #separation at F_min
+            if (sep_min > 30):
+                f_min = 0  # if min is too far away from contact point, it's just noise, not attraction
 
-        curve_param.loc[i,'F_cont']=fci
-        curve_param.loc[i,'F_attr']=f_min
-        curve_param.loc[i,'attr_sep']=sep_min
-        #print(cross, len(zp_g[cross:-1]), len(zp_g[0:cross]))
+            #find points right before/after any jump to/from contact
+            #data here captures transient motion of cantelever, not ture force profile
+            bad = (deriv_df <= -1.25)
 
-        dfi_c = pd.DataFrame({
-            'zp': zp_g[cross:-1],
-            'df': df_g[cross:-1],
-            'sep': sep_g[cross:-1],
-            'force': force_g[cross:-1],
-            'index': i
-        })
+            bad[min_loc::] = False
+            if np.sum(bad) >2:
+                badrange = np.where(bad)[0]
+                bright = badrange[-1]
+                if len(badrange[badrange>far])>0:
+                    bleft = badrange[badrange>far][0]
+                else:
+                    bleft = bright
+                #print(far, bleft, bright)
+                bad[bleft:bright] = True
 
-        dfi_nc = pd.DataFrame({
-            'zp': zp_g[0:cross],
-            'df': df_g[0:cross],
-            'sep': sep_g[0:cross],
-            'force': force_g[0:cross],
-            'index': i
-        })
+            sep_g = sep[~bad]
+            force_g = force[~bad]
+            df_g = df[~bad]
+            zp_g = zp[~bad]
 
-        force_curves_c=force_curves_c.append(dfi_c, sort=True)
-        force_curves_nc=force_curves_nc.append(dfi_nc, sort=True)
+
+            fig, ax = plt.subplots(figsize=(8,5))
+            ax.plot(sep_g,force_g, '-o')
+            ax.plot(sep[cross:-1],force[cross:-1], 'o', color='purple')
+            ax.plot(0,fci, 'r^', zorder =100)
+            ax.plot(sep_min,f_min, 'gs', zorder =100)
+            ax.axvline(x=0.0, color='k', zorder = 100)
+            ax.set_ylabel('Force (nN)')
+            ax.set_xlabel(r'$z_{sep}$ (nm)')
+            ax.set_xlim([-1,50])
+
+            plt.tight_layout()
+            fig.savefig(attrdir+str(i).zfill(3)+'_force_sep_attr'+ext)
+            plt.close(fig)
+
+            curve_param.loc[i,'F_cont']=fci
+            curve_param.loc[i,'F_attr']=f_min
+            curve_param.loc[i,'attr_sep']=sep_min
+            #print(cross, len(zp_g[cross:-1]), len(zp_g[0:cross]))
+
+            dfi_c = pd.DataFrame({
+                'zp': zp_g[cross:-1],
+                'df': df_g[cross:-1],
+                'sep': sep_g[cross:-1],
+                'force': force_g[cross:-1],
+                'index': i
+            })
+
+            dfi_nc = pd.DataFrame({
+                'zp': zp_g[0:cross],
+                'df': df_g[0:cross],
+                'sep': sep_g[0:cross],
+                'force': force_g[0:cross],
+                'index': i
+            })
+
+            force_curves_c=force_curves_c.append(dfi_c, sort=True)
+            force_curves_nc=force_curves_nc.append(dfi_nc, sort=True)
+        except:
+            print('error with curve: '+str(i)+" skipping! ")
 
     curve_param.to_csv(outbase+'curve_param.csv')
     force_curves_c.to_csv(outbase+'force_curves_c.csv')
