@@ -12,21 +12,23 @@ NA = 6.022e23  # Avogadro's number
 e = 1.602e-19  # Elementary charge in Coulombs
 kB = 1.38064852e-23  # Boltzmann constant in m^2 kg s^-2 K^-1
 h = 1e-9  # Separation distance in meters
-concentration = 550  # mM
+concentration = 1.6  # mM
 # Assuming a typical Hamaker constant for glass-water interaction
-Hamaker_constant = 7.2e-20  # in Joules
+Hamaker_constant = 1e-20  # in Joules
 
 circle_geom = 2 * 3.14 * radius
 
 # Function to calculate Debye length (1/kappa) based on LiCl concentrationa
 def debye_length(concentration, valence=1, temperature=298.15):
     # Convert concentration from mM to mol/m^3
-    concentration_mol = concentration * 1e-3 
+    concentration_mol = concentration # It's already in mol/m^3 
     # Ionic strength
     I = 0.5 * valence**2 * concentration_mol
     # Debye length (1/kappa)
     #return np.sqrt(temperature * kB * epsilon_r * epsilon_0 / (2 * NA * (e**2) * concentration))
-    return np.sqrt((epsilon_0 * epsilon_r * kB * temperature) / (2000 * NA * e**2 * I))  # IMaSF ch13 eq 13.10
+    # debye length
+    return np.sqrt(epsilon_r * epsilon_0 * kB * temperature / (2 * NA * e**2 * I))
+    
 
 
 # Function to calculate electrostatic repulsion energy with LiCl concentration
@@ -39,12 +41,46 @@ def debye_length(concentration, valence=1, temperature=298.15):
 #    return force_electro
 
 # Function to calculate electrostatic repulsion energy with LiCl concentration
-def electrostatic_repulsion_energy_alex(sep, concentration):
-    kappa = 1 / debye_length(concentration)
-    repulsion = (epsilon_r * epsilon_0 * Psi_0**2) * circle_geom * np.exp(-kappa * sep)
-    print(f"Electrostatic Force for distance h {sep}: " + str(repulsion))
-    return repulsion
+#def electrostatic_repulsion_force(sep, concentration):
+#    kappa = 1 / debye_length(concentration)
+#    repulsion = (epsilon_r * epsilon_0 * Psi_0**2) * circle_geom * np.exp(-kappa * sep)
+#    print(f"Electrostatic Force for distance h {sep}: " + str(repulsion))
+#    return repulsion
 
+
+# Updated function to calculate electrostatic repulsion force between a sphere and a plane
+def electrostatic_repulsion_force_old(sep, concentration):
+    kappa = 1 / debye_length(concentration)
+    # Force per unit area
+    force_per_area = (epsilon_r * epsilon_0 * Psi_0**2 * kappa) / 2 * np.exp(-kappa * sep)
+    # Approximating the contact area as a circle with radius equal to the separation distance
+    contact_area = 2 * np.pi * radius * sep
+    # Total force
+    total_force = force_per_area * contact_area
+    print(f"Electrostatic Force for distance h {sep}: " + str(total_force))
+    return total_force
+    # WHY ARE YOU FLAAAAAT
+
+# Updated function to calculate electrostatic repulsion force between a sphere and a plane
+def electrostatic_repulsion_force_ugh(sep, concentration):
+    kappa = 1 / debye_length(concentration)
+    # Force per unit area
+    force_per_area = 2 * (epsilon_r * epsilon_0 * Psi_0**2)**2 * np.exp(-kappa * sep) # IMaSD Ch14 14.56
+    # Approximating the contact area as a circle with radius equal to the separation distance
+    contact_area = 2 * np.pi * radius
+    # Total force
+    total_force = force_per_area * contact_area
+    print(f"Electrostatic Force for distance h {sep}: " + str(total_force))
+    return total_force
+
+def electrostatic_repulsion_force(sep, concentration):
+    kappa = 1 / debye_length(concentration)
+    # Force per unit area
+    force_per_area = epsilon_r * epsilon_0 * Psi_0**2 * np.exp(-kappa * sep)
+    # Derjaguin approximation to find the force
+    total_force = 2 * np.pi * radius * force_per_area
+    print(f"Electrostatic Force for distance h {sep}: " + str(total_force))
+    return total_force
 
 
 # Assuming van der Waals interaction does not change with LiCl concentration for simplicity
@@ -54,7 +90,7 @@ def electrostatic_repulsion_energy_alex(sep, concentration):
 li_cl_concentrations = [0.6, 1.6, 5, 10, 25, 50, 230, 550]
 
 # Placeholder function for van der Waals energy
-def van_der_Waals_energy(sep):
+def van_der_Waals_force(sep):
     force_vdw = - (Hamaker_constant * radius) / (6 * sep ** 2) # IMaSF ch13 eq 13.11b
     print(f"van der Waals Force for h {sep}: " + str(force_vdw))
     return force_vdw
@@ -62,20 +98,8 @@ def van_der_Waals_energy(sep):
 
 # Total interaction energy function including LiCl concentration
 def total_interaction_energy(sep, concentration):
-    return -van_der_Waals_energy(sep) + electrostatic_repulsion_energy_alex(sep, concentration)
+    return -van_der_Waals_force(sep) + electrostatic_repulsion_force(sep, concentration)
 
-
-# Print the results
-#print("LiCl concentration:" + str(concentration) + " mM | Debye length: " + str(debye_length(concentration)) + " m | Force at contact: " + str(total_interaction_energy(1e-9, concentration) * 1e9) + " nN")
-#1.6 should be 6.088369852 nm
-
-# plot a graph from  30nm away to 1nm away
-#x = np.linspace(1e-9, 10e-9, 100)
-#y = total_interaction_energy(x, concentration)
-#plt.plot(x, y)
-#plt.xlabel("Distance (m)")
-#plt.ylabel("Force (N)")
-#plt.show()
 
 # Plot a graph of distance vs force with 3 curves; van der Waals, electrostatic, and combined
 # generate a range of distances from 1nm to 20 nm NOT LINSPACE, use python range not numpy
@@ -87,9 +111,9 @@ y_total = []
 for i in x:
     print("doing " + str(i) + "m now")
     # van der Waals
-    y_vdw.append(van_der_Waals_energy(i))
+    y_vdw.append(van_der_Waals_force(i))
     # electrostatic
-    y_electro.append(electrostatic_repulsion_energy_alex(i, concentration))
+    y_electro.append(electrostatic_repulsion_force(i, concentration))
     # combined
     y_total.append(total_interaction_energy(i, concentration))
 #plot curves
@@ -99,6 +123,8 @@ plt.plot(x, y_electro, label="electrostatic")
 plt.plot(x, y_total, label="combined")
 plt.xlabel("Distance (m)")
 plt.ylabel("Force (N)")
+#title the graph and add a legend with the concentration
+plt.title("Force vs. Distance for LiCl Concentration " + str(concentration) + " mM")
 # debye as a dot
 debye_len = debye_length(concentration)
 plt.plot(debye_len, 0, 'o', label="Debye Length")
@@ -106,12 +132,27 @@ plt.legend()
 plt.show()
 
 
+# Calculate electrostatic repulsive force for a fixed separation distance across different concentrations
+fixed_sep = 1e-9  # 1 nm
+electrostatic_forces = [electrostatic_repulsion_force(fixed_sep, conc) for conc in li_cl_concentrations]
+
+# Plotting electrostatic force vs concentration
+plt.figure(figsize=(10, 6))
+plt.plot(li_cl_concentrations, electrostatic_forces, marker='o')
+plt.xscale("log")
+plt.yscale("log")
+plt.xlabel("LiCl Concentration (mM)")
+plt.ylabel("Electrostatic Repulsive Force (N)")
+plt.title("Electrostatic Repulsive Force vs. LiCl Concentration")
+plt.grid(True)
+plt.show()
+
 forces = []
 # Calculation of forces and Debye length for each LiCl concentration
 for conc in li_cl_concentrations:
     debye_len = debye_length(conc)  # Calculate Debye length
     #force = derjaguin_approximation_force(1e-9, radius, conc)  # Calculate force
-    force = total_interaction_energy(1e-9, conc)
+    force = total_interaction_energy(h, conc)
     forces.append(force)
     print(f"LiCl concentration: {conc} mM - Debye length: {debye_len} m - Force at contact: {force} N")
 
