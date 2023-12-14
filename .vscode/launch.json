@@ -5,6 +5,7 @@
     "version": "0.2.0",
     "configurations": [
 
+
         {
             "name": "Python: GUI_v2.py",
             "type": "python",
@@ -21,7 +22,16 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true
-        }
+        },
+        //file finder
+        {
+            "name": "Python: File finder",
+            "type": "python",
+            "request": "launch",
+            "program": "FileFinder.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
     ]
 
 }

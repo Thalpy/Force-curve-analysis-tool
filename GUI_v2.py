@@ -121,6 +121,11 @@ class MFPAnalysisApp(tk.Tk):
         self.extra_checkbox = Checkbutton(self, text="Extra", variable=self.extra_var)
         self.extra_checkbox.pack()
 
+        self.dwell_var = tk.BooleanVar()  # Variable to track the state of the dwell checkbox
+        self.dwell_checkbox = Checkbutton(self, text="Dwell", variable=self.dwell_var)
+        self.dwell_checkbox.pack()  # Add the dwell checkbox to the GUI
+
+
 
     def create_variable_fields(self):
         # Define default values for 'Approach' mode
@@ -218,6 +223,7 @@ class MFPAnalysisApp(tk.Tk):
         # Extract values from entries
         variable_values = {var: entry.get() for var, entry in self.variable_entries.items()}
         extra = self.extra_var.get()
+        dwell = self.dwell_var.get()  # Get the state of the dwell checkbox
 
         # Fill in default values if fields are empty
         for var, entry in self.variable_entries.items():
@@ -246,7 +252,8 @@ class MFPAnalysisApp(tk.Tk):
             str(variable_values.get('out', '')).lower(),  # sys.argv[11]
             str(variable_values.get('clear', '')).lower(),  # sys.argv[12]
             str(variable_values.get('approach', '')).lower(),  # sys.argv[13]
-            str(extra).lower()  # sys.argv[14]
+            str(extra).lower(),  # sys.argv[14]
+            str(dwell).lower()  # sys.argv[15] - New argument for dwell
         ]
 
 

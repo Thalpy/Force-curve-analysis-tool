@@ -65,7 +65,7 @@ out = sys.argv[11].lower() == 'true'
 clear = sys.argv[12].lower() == 'true'
 approach = sys.argv[13].lower() == 'true'
 extra = sys.argv[14].lower() == 'true'
-
+dwell = sys.argv[15].lower() == 'true'
 
 # Make sure we don't have .txt at the end of the name
 if name[-4:] == '.txt':
@@ -102,7 +102,13 @@ if not os.path.exists(outdir):
     
 #Check if approach or retract folder is there
 if not os.path.exists(outdir + "approach/") or not os.path.exists(outdir + "retract/"):
-    res = afm.split_curves(name, k_c = k_c, ext = ext) # Works
+    # Use split_dwell_curves if dwell is True, else use split_curves
+    if dwell:
+        print("Dwell is enabled. Running split_dwell_curves.")
+        res = afm.split_dwell_curves(name, k_c=k_c, ext=ext)
+    else:
+        print("Dwell is disabled. Running split_curves.")
+        res = afm.split_curves(name, k_c=k_c, ext=ext)
 
 # Skip designated files
 # List of file numbers to skip
