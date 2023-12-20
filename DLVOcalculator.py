@@ -139,7 +139,7 @@ def electrostatic_repulsion_force_bad(sep, concentration): # like e20 or somethi
 
 # These two seem closest
 
-def electrostatic_repulsion_force_argh(sep, concentration): #Right numbers wrong shape so close :(
+def electrostatic_repulsion_force(sep, concentration): #Right numbers wrong shape so close :(
     kappa = 1 / debye_length(concentration)
     #Calculate the electrostatic force per unit area using the Derjaguin approximation for a sphere-plane interaction
     
@@ -166,7 +166,7 @@ def electrostatic_repulsion_force_plane_plane(sep, concentration): #plane plane 
     print(f"Electrostatic Force for distance h {sep}: " + str(force_per_area))
     return force_per_area
 
-def electrostatic_repulsion_force_bleh(sep, concentration): #e-11 # Alt fig 14.10 IMaSD sphere - plane
+def electrostatic_repulsion_force_wowow(sep, concentration): #e-11 # Alt fig 14.10 IMaSD sphere - plane
     kappa = 1 / debye_length(concentration)
     rho_inf = NA * concentration
     #Calculate the electrostatic force per unit area using the Derjaguin approximation for a sphere-plane interaction

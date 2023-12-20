@@ -196,30 +196,8 @@ def split_dwell_curves(name, k_c=0.188, ext='.pdf'):
         os.makedirs(forcedir)
 
     # Iterate over each curve in the dataset
-    nrows, ncols = np.shape(dis_pos_full)
-
-        #removes pesky velocity curves in a hamfisted way:
-    CheckType = np.genfromtxt(name+'.txt', delimiter="\t", max_rows=1, dtype=None)
-    delcol=0
-    while True:
-        try:
-            for i in range(len(dis_pos_full)-1):
-                test = str(CheckType[i])
-                if "Velo" in test:
-                    dis_pos_full = np.delete(dis_pos_full, i-delcol, axis=1)
-                    delcol = delcol+1
-                    #print('Velo'+str(i))
-                if "Position" in test:
-                    #print(i)
-                    dis_pos_full = np.delete(dis_pos_full, i-delcol, axis=1)
-                    delcol = delcol+1
-            break
-        except:
-            #print(len(dis_pos_full))
-            break
-
     #print(ncols)
-    ncurves = int(ncols/2)
+    ncurves = len(data.columns) // 2
     for i in range(ncurves):
         try:
             Zpiezo = data.iloc[:, 2 * i] * 1e6  # Convert from meters to micrometers
