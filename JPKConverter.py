@@ -7,18 +7,33 @@ def convert_data(data_lines):
         parts = line.split()
         if len(parts) >= 2:
             zpiezo, defl = parts[0], parts[1]
-            zpiezo_um = float(zpiezo) * 1E6  # Convert Zpiezo to micrometers
+            zpiezo_um = -float(zpiezo) * 1E6  # Convert Zpiezo to micrometers
             force = 0.155 * float(defl) * 1E9  # Calculate the force
-            converted_data.append([zpiezo_um, force])
+            converted_data.append([zpiezo_um, defl, force])  # Keep original zpiezo and defl
     return converted_data
 
-def save_plot(data, filename):
-    zpiezo, force = zip(*data)
+def save_plot(approach_data, retract_data, filename):
+    # Unpack the zpiezo, defl, and force data for approach and retract
+    approach_zpiezo, approach_defl, approach_force = zip(*approach_data)
+    retract_zpiezo, retract_defl, retract_force = zip(*retract_data)
+
     plt.figure()
-    plt.plot(zpiezo, force)
+    plt.plot(approach_zpiezo, approach_force, label='Approach')
+    plt.plot(retract_zpiezo, retract_force, label='Retract')
     plt.xlabel('Zpiezo (um)')
     plt.ylabel('Force (N)')
     plt.title('Zpiezo vs Force')
+    plt.legend()
+    # Set the number of x-axis ticks
+    plt.locator_params(axis='x', nbins=10)  # Adjust the number of bins as needed
+
+    # Automatically use tight layout to prevent label overlap
+    plt.tight_layout()
+
+    # Use scientific notation for the x-axis
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+
+    # Save the figure and close the plot to release memory
     plt.savefig(filename)
     plt.close()
 
@@ -43,6 +58,9 @@ def process_file(file_path, export_folder):
 
         approach_data = convert_data(approach_lines)
         retract_data = convert_data(retract_lines)
+        # Since the data is backwards, we reverse the lists
+        #approach_data.reverse()
+        #retract_data.reverse()
 
         # Extracting the last three numbers from the filename
         file_number = file_path.split('_')[-1].split('.')[0]
@@ -52,17 +70,18 @@ def process_file(file_path, export_folder):
         retract_file = os.path.join(export_folder, 'retract', f"{file_number}_retract.txt")
         plot_filename = os.path.join(export_folder, 'Raw_force_curves', f"{file_number}_force_curve.png")
 
-        header = "# Zpiezo\tForce\n"
+        header = "# Zpiezo\tDefl\tForce\n"
         with open(approach_file, 'w') as file:
             file.write(header)
-            for zpiezo, force in approach_data:
-                file.write(f"{zpiezo:.6e}\t{force:.12e}\n")
+            for zpiezo, defl, force in approach_data:
+                file.write(f"{zpiezo}\t{defl}\t{force}\n")  # Zpiezo and Defl are written as-is
+                
         with open(retract_file, 'w') as file:
             file.write(header)
-            for zpiezo, force in retract_data:
-                file.write(f"{zpiezo:.6e}\t{force:.12e}\n")
+            for zpiezo, defl, force in retract_data:
+                file.write(f"{zpiezo}\t{defl}\t{force}\n")
 
-        save_plot(approach_data, plot_filename)
+        save_plot(approach_data, retract_data, plot_filename)
         print(f"Processed and saved: {file_number}")
 
     except Exception as e:

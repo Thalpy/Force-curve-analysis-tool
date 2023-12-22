@@ -112,7 +112,7 @@ if not os.path.exists(outdir + "approach/") or not os.path.exists(outdir + "retr
 
 # Skip designated files
 # List of file numbers to skip
-skip_list = [0]  # Update this list as needed
+skip_list = []  # Update this list as needed
 
 # Assuming 'approach' variable is True if processing approach files, False for retract files
 approach_or_retract_folder = "approach" if approach else "retract"

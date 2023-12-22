@@ -322,9 +322,9 @@ def comp_def_deriv(name, k_c = 0.188, binsize = 1.0, dfit_win = 50, dfit_off = 6
         avgdf_far = np.mean(df[0:(fitbin*10)])
         df = df - avgdf_far
 
-        if np.max(df) <= cthresh:
-            print('skipping: ' +str(numbCountJ).zfill(3))
-            continue
+        #if np.max(df) <= cthresh:
+        #    print('skipping: ' +str(numbCountJ).zfill(3))
+        #    continue
 
         # CHANGED
         #guess contact point and work backwards
