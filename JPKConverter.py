@@ -100,6 +100,6 @@ def process_folder(input_folder, export_folder):
 
 
 # Example usage
-input_folder = r'F:\OneDrive\OneDrive - University of Edinburgh\Silica Files for John\NewAFM (JPK)\0.5mM\petri\Maps\map-data-2019.06.16-17.35.14.780_processed-2023.12.20-07.25.51\processed_curves-2023.12.20-07.25.51'  # Replace with your input folder path
-export_folder = r'F:\OneDrive\OneDrive - University of Edinburgh\NewFits\Forcemaps\Output_force_curves'  # Replace with your export folder path
+input_folder = r'F:\OneDrive\OneDrive - University of Edinburgh\NewFits\Forcemaps\10mM\processed_curves-2023.12.23-11.06.50'  # Replace with your input folder path
+export_folder = r'F:\OneDrive\OneDrive - University of Edinburgh\NewFits\Forcemaps\10mM\Output_force_curves'  # Replace with your export folder path
 process_folder(input_folder, export_folder)
