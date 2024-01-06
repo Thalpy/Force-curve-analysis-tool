@@ -105,7 +105,7 @@ if not os.path.exists(outdir + "approach/") or not os.path.exists(outdir + "retr
     # Use split_dwell_curves if dwell is True, else use split_curves
     if dwell:
         print("Dwell is enabled. Running split_dwell_curves.")
-        res = afm.split_dwell_curves(name, k_c=k_c, ext=ext)
+        res = afm.split_dwell_curves2(name, k_c=k_c, ext=ext)
     else:
         print("Dwell is disabled. Running split_curves.")
         res = afm.split_curves(name, k_c=k_c, ext=ext)

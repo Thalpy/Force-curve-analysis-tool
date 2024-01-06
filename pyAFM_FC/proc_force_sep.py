@@ -360,6 +360,7 @@ def comp_def_deriv(name, k_c = 0.188, binsize = 1.0, dfit_win = 50, dfit_off = 6
         })
 
         deriv_curves=deriv_curves.append(dfi, sort=True)
+        #deriv_curves=pd.concat([deriv_curves, dfi], sort=True, axis=1)# deriv_curves.append(dfi, sort=True)
         #del dfi
 
         ax.plot(dfb,deriv_df , '-')

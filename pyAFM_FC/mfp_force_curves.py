@@ -171,6 +171,146 @@ def validate_curve_shape(curve_data, force_min=-10, force_max=20, zpiezo_min_ran
     # If both conditions are met, the curve is valid
     return force_range_condition and zpiezo_range_condition
 
+def split_dwell_curves2(name, k_c = 0.188, ext = '.pdf'):
+    # Function to split up a bunch of force curves
+
+
+    outdir = name+'_force_curves/'
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    forcedir = outdir+'Raw_force_curves/'
+    if not os.path.exists(forcedir):
+        os.makedirs(forcedir)
+
+    atxtdir = outdir+'approach/'
+    if not os.path.exists(atxtdir):
+        os.makedirs(atxtdir)
+
+    rtxtdir = outdir+'retract/'
+    if not os.path.exists(rtxtdir):
+        os.makedirs(rtxtdir)
+
+    #dis_pos_full = np.loadtxt(name+'.txt', delimiter="\t", skiprows=1)
+    dis_pos_full = np.genfromtxt(name+'.txt', delimiter="\t", skip_header=1)
+
+    #removes pesky velocity curves in a hamfisted way:
+    CheckType = np.genfromtxt(name+'.txt', delimiter="\t", max_rows=1, dtype=None)
+    delcol=0
+    while True:
+        try:
+            for i in range(len(dis_pos_full)-1):
+                test = str(CheckType[i])
+                if "Velo" in test:
+                    dis_pos_full = np.delete(dis_pos_full, i-delcol, axis=1)
+                    delcol = delcol+1
+                    #print('Velo'+str(i))
+                if "Position" in test:
+                    #print(i)
+                    dis_pos_full = np.delete(dis_pos_full, i-delcol, axis=1)
+                    delcol = delcol+1
+            break
+        except:
+            #print(len(dis_pos_full))
+            break
+
+    nrows, ncols = np.shape(dis_pos_full)
+
+    #print(ncols)
+    ncurves = int(ncols/2)
+
+    for i in range(ncurves):
+        try:
+            disp = dis_pos_full[:,2*i]
+            disp = disp[~np.isnan(disp)]
+            Zpiezo = dis_pos_full[:,2*i+1]
+            Zpiezo = Zpiezo[~np.isnan(Zpiezo)]
+
+            #print(len(disp), len(Zpiezo))
+            #disp_offset = np.mean(disp[0:navg])
+            disp_offset = 0
+            force = k_c*(disp-disp_offset)*1.0e9
+
+            Zpiezo = Zpiezo*1.0e6
+
+            split = np.argmax(Zpiezo)
+            # print(np.max(Zpiezo))
+            #print(split)
+
+            # Find the highest force value and its index
+            max_force_index = np.argmax(force)
+            max_force_value = force[max_force_index]
+
+            # Subtract 1 nN from the highest force value
+            target_force_value = max_force_value - 1
+
+            # Find the index where the force first reaches or crosses this value
+            # For approach curve
+            approach_index = np.where(force[0:max_force_index] <= target_force_value)[0][-1]
+
+            # For retract curve
+            retract_index = np.where(force[max_force_index:] <= target_force_value)[0][0] + max_force_index
+
+            # Export the approach segment
+            np.savetxt(atxtdir + str(i).zfill(3) + '_approach.txt',
+                    np.vstack((Zpiezo[0:approach_index], disp[0:approach_index], force[0:approach_index])).T,
+                    delimiter='\t', newline='\n', header='Zpiezo \t Defl \t Force')
+
+            # Export the retract segment
+            np.savetxt(rtxtdir + str(i).zfill(3) + '_retract.txt',
+                    np.vstack((Zpiezo[retract_index:], disp[retract_index:], force[retract_index:])).T,
+                    delimiter='\t', newline='\n', header='Zpiezo \t Defl \t Force')
+
+            #plot stuff and save files
+
+            fig, ax = plt.subplots(figsize=(10,4), dpi=100)
+            ax.plot(Zpiezo[0:approach_index],force[0:approach_index] , 'r-')
+            ax.plot(Zpiezo[retract_index:],force[retract_index:] , 'b-')
+            ax.set_ylabel('Force (nN)')
+            ax.set_xlabel('Zpiezo (um)')
+            plt.tight_layout()
+            fig.savefig(forcedir+str(i).zfill(3)+'_force_Zpiezo_dwell'+ext)
+            plt.close(fig)
+
+            #np.savetxt(atxtdir+str(i).zfill(3)+'_approach.txt', np.vstack((Zpiezo[0:split-1], disp[0:split-1], force[0:split-1]) ).T, delimiter='\t', newline='\n', header='Zpiezo \t Defl \t Force')
+            #np.savetxt(rtxtdir+str(i).zfill(3)+'_retract.txt', np.vstack((Zpiezo[split:-1], disp[split:-1], force[split:-1]) ).T, delimiter='\t', newline='\n', header='Zpiezo \t Defl \t Force')
+
+            # Zoom in on the transition region for the first curve as an example
+            disp = dis_pos_full[:, 0]
+            disp = disp[~np.isnan(disp)]
+            Zpiezo = dis_pos_full[:, 1]
+            Zpiezo = Zpiezo[~np.isnan(Zpiezo)]
+            disp_offset = 0
+            force = k_c * (disp - disp_offset) * 1e9
+            Zpiezo = Zpiezo * 1e6  # Convert from meters to micrometers
+
+            # Finding the transition point for zooming
+            # Assuming the transition occurs at the point where the force starts increasing from the baseline
+            baseline_noise = np.std(force[0:split-1])  # Calculate the standard deviation of the baseline noise
+            baseline = np.mean(force[0:split-1])  # Calculate baseline force before the transition
+            threshold = baseline + 5 * baseline_noise  # Set threshold as a multiple of noise level above the baseline
+
+            transition_indices = np.where(force > threshold)[0]
+            transition_index = transition_indices[0] if transition_indices.size > 0 else split
+            zoom_window=100e-3  # Zoom window size in micrometers
+
+            """ broken atm
+            # Define the zoom region around the transition
+            half_window = int(zoom_window / (Zpiezo[1] - Zpiezo[0]) / 2)
+            start_index = max(transition_index - half_window, 0)
+            end_index = min(transition_index + half_window, len(Zpiezo))
+
+            # Create a plot for the zoomed region
+            fig, ax = plt.subplots(figsize=(10, 4))
+            ax.plot(Zpiezo[start_index:end_index], force[start_index:end_index], 'b-')
+            ax.set_ylabel('Force (nN)')
+            ax.set_xlabel('Zpiezo (um)')
+            plt.tight_layout()
+            #fig.savefig(forcedir+str(i).zfill(3)+'_force_Zpiezo_zoom'+ext) #Broken atm
+            """
+        except:
+            print('!!! Error in curve '+str(i))
+
 def split_dwell_curves(name, k_c=0.188, ext='.pdf'):
     # Read the data file
     data = pd.read_csv(name + '.txt', sep="\t", header=0)
