@@ -5,9 +5,8 @@ import numpy as np
 import glob
 
 # Directory containing your data files
-data_folder = r'F:\OneDrive\OneDrive - University of Edinburgh\NewFits\550mM\S3\550mMS1.0.5Hz.nD.12nN_force_curves\approach'  # Replace with your folder path
+data_folder = r'C:\Users\phaso\OneDrive - University of Edinburgh\NewFits\Forcemaps\10mM_force_curves\approach'  # Replace with your folder path
 retract_mode = False  # Set to True if processing retract data
-Zoom_window = True
 output_folder = os.path.join(data_folder, 'output')
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
@@ -53,25 +52,6 @@ def process_file(file_path, retract=False):
     plt.savefig(plot_file_path)
     plt.close()
 
-    # Zoomed in plot
-    # Use the window of data from 10nN on the y axis to a range of 1um on the x axis
-    if Zoom_window:
-        plt.figure(figsize=(10, 6))
-        plt.plot(data['Zpiezo'], data['Adjusted Force'], label='Adjusted Force')
-        #plt.axvspan(floor_region_start, floor_region_end, color='yellow', alpha=0.5, label='Flooring Region')
-        plt.xlabel('Zpiezo')
-        plt.ylabel('Adjusted Force')
-        plt.title(f'Adjusted Force Data for {os.path.basename(file_path)}')
-        plt.legend()
-        plt.ylim(0, 10)
-        #Find the x value where y passes 10nN
-        x = data['Zpiezo'].loc[data['Adjusted Force'] > 10].iloc[0]
-        #Set the x axis to a range of 0.1um from that value backwards
-        plt.xlim(x-0.1, x)
-        plot_file_path = os.path.join(output_folder, os.path.basename(file_path).replace('.txt', '_zoom.png'))
-        plt.savefig(plot_file_path)
-        plt.close()
-
     return os.path.basename(file_path), min_force
 
 
@@ -81,11 +61,31 @@ plt.ioff()
 # Process each file and collect results
 results = []
 for file_path in glob.glob(os.path.join(data_folder, '*.txt')):
-    result = process_file(file_path, retract=retract_mode)
-    results.append(result)
+    filename, min_force = process_file(file_path, retract=retract_mode)
+    results.append((filename, min_force))  # Make sure to append a tuple
+
+# Create a DataFrame from results
+results_df = pd.DataFrame(results, columns=['Filename', 'Minimum Force'])
 
 # Save results to CSV
-results_df = pd.DataFrame(results, columns=['Filename', 'Minimum Force'])
 results_csv_path = os.path.join(output_folder, 'min_force_results.csv')
 results_df.to_csv(results_csv_path, index=False)
 
+# Now extract the 'Minimum Force' column as a NumPy array
+min_forces_array = results_df['Minimum Force'].to_numpy()
+min_forces_array = min_forces_array[~np.isnan(min_forces_array)]  # Remove NaN values
+
+# Plot histogram
+fig, ax = plt.subplots(figsize=(10, 4))
+ax.hist(min_forces_array, bins=50)
+mean_force = min_forces_array.mean()
+std_force = min_forces_array.std()
+ax.set_xlabel('Peak Attractive Force (nN)')
+ax.set_ylabel('Counts')
+ax.set_title(f'Average Peak Attactive Force = {mean_force:.3f} +/- {std_force:.3f} (nN)')
+
+# Save the histogram figure
+histogram_path = os.path.join(output_folder, 'contact_force_histogram.png')
+plt.tight_layout()
+fig.savefig(histogram_path)
+plt.close(fig)

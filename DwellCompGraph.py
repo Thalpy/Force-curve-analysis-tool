@@ -1,18 +1,17 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-approach = False
+approach = True
 
 # standard data
 ionic_strengths = np.array([0.6, 1.6, 5, 10, 25, 50, 230, 550])
 approach_forces = np.array([4.518, 3.568, 3.044, 3.335, 2.928666667, 3.0615, 1.467, -0.156])
-approach_std_dev = np.array([1.196644336, 0.571262199, 0.10209174, 0.12709399, 1.529998003, 0.300820902, 0.08472412, 0.004511646])
+approach_std_dev = np.array([1.196644336, 0.571262199, 0.580405031, 0.746983266, 1.432576583, 0.657742351, 0.362660309, 0.47126072])
 
 
 retract_forces = [-0.152666667, -0.1095, -0.328333333, -0.327666667, 
                         -2.377666667, -0.1885, -1.0375, -1.289333333]
-retract_std_dev = [0.325552863, 0.147893543, 0.018316668, 0.003715339, 
-                         0.372851406, 0.002227386, 0.078372887, 0.008847494]
+retract_std_dev = [0.325552863, 0.147893543, 0.52553116,0.633612395, 1.388164976, 0.058843011, 0.378613919, 0.24962572]
 
 retrace_ionic_strengths_5s = [0.6, 1.6, 5, 10, 25, 230, 550]
 retrace_forces_5s = [-1.603, -0.211, -0.614, -0.335, -2.029, -1.892, -2.743]
@@ -39,13 +38,13 @@ if approach:
     # Plot for standard with purple color for standard
     plot_log_linear(ionic_strengths, approach_forces, approach_std_dev, 'No dwell', 'purple')
     # Plot for 5s, using a different color
-    plot_log_linear(approach_ionic_strengths_5s, approach_forces_5s, std_dev_approach_5s, '5s dwell', 'green')
+    plot_log_linear(approach_ionic_strengths_5s, approach_forces_5s, std_dev_approach_5s, '5s dwell', 'orange')
     # Title for the overall plot
     plt.title('Averaged Approach Force vs. LiCl Concentration at Different Dwelling Times')
 
 else:
     # Plot for standard with purple color for standard
-    plot_log_linear(ionic_strengths, retract_forces, retract_std_dev, 'No dwell', 'purple')
+    plot_log_linear(ionic_strengths, retract_forces, retract_std_dev, 'No dwell', 'blue')
     plot_log_linear(retrace_ionic_strengths_5s, retrace_forces_5s, std_dev_retrace_5s, '5s dwell', 'green')
     # Title for the overall plot
     plt.title('Averaged Retrace Attractive Force vs. LiCl Concentration at Different Dwelling Times')
