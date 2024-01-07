@@ -1,21 +1,37 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import pandas as pd
 
 # Constants
 epsilon_r = 62  # Relative permittivity for 50:50 water-glycerol mixture # From that other peper
 epsilon_0 = 8.854e-12 # Vacuum permittivity in F/m.
-radius = 3.3e-6  # Radius of the sphere in meters (2 um diameter)
+radius = 3.3e-6  # Radius of the sphere in meters (6 um diameter)
 Psi_0 = -0.040  # Surface potential in volts (25 mV as an approximation for neutral pH) # -0.04 taken from https://nanocomposix.com/pages/silica-physical-properties
 temperature = 300  # Room temperature in Kelvin (25°C)
 NA = 6.022e23  # Avogadro's number
 e = 1.602e-19  # Elementary charge in Coulombs
 kB = 1.38064852e-23  # Boltzmann constant in m^2 kg s^-2 K^-1
 h = 2e-9  # Separation distance in meters
-concentration = 1.6  # mM
+concentration = 550  # mM
+approach_dict = {
+    0.6: r"F:\OneDrive\OneDrive - University of Edinburgh\NewFits\0.6mM\S1\T6.4.0.5mMSi.S1.deflection0000++_force_curves\Run4 (thiS)\approach__force_sep.txt",
+    550: r"F:\OneDrive\OneDrive - University of Edinburgh\NewFits\550mM\S1\T6.2.550mM.Si.S1deflection_force_curves\Run3\approach__force_sep.txt"
+}
+retract_dict = {
+    0.6: r"F:\OneDrive\OneDrive - University of Edinburgh\NewFits\0.6mM\S1\T6.4.0.5mMSi.S1.deflection0000++_force_curves\ret_Run_Ret1\retract__force_sep.txt",
+    550: r"F:\OneDrive\OneDrive - University of Edinburgh\NewFits\550mM\S1\T6.2.550mM.Si.S1deflection_force_curves\ret_Run3_Ret\retract__force_sep.txt"
+}
 # Assuming a typical Hamaker constant for glass-water interaction
 Hamaker_constant = 0.63e-20  # in Joules # From psi_0 values silica.pdf
 valency = 1 # aka little z
+#Roughness value if needed - leave blank if not needed
+roughness_value = 2.6e-10 + 6.45e-10 #From experimental data
+
+#Retrace curve parameters
+sep_initial = 1e-10  # 0.1 nm initial separation (close to surface)
+adhesion_force = 7.03e-10  # From experimental data
+tip_distance = 10e-9  # Retract 10 nm
 
 circle_geom = 2 * 3.14 * radius
 
@@ -58,136 +74,16 @@ def gouy_chapman_stern(charge_density, kappa, psi_d_guess):
     psi_0_solution = fsolve(equation, psi_d_guess)
     return psi_0_solution[0]
 
-
-# Function to calculate electrostatic repulsion energy with LiCl concentration
-#def electrostatic_repulsion_energ(sep, concentration):
-#    """Calculate the electrostatic repulsion energy per unit area with LiCl concentration."""
-#    kappa = 1 / debye_length(concentration)
-#    force_electro = ((2 * 3.14 * radius * epsilon_r * epsilon_0 * Psi_0**2)/ kappa) * np.exp(-kappa * sep)
-#    #force_electro = 64 * (concentration * 1e-3) * kB * T *
-#    print("Electrostatic Force: " + str(force_electro))
-#    return force_electro
-
-# Function to calculate electrostatic repulsion energy with LiCl concentration
-#def electrostatic_repulsion_force(sep, concentration):
-#    kappa = 1 / debye_length(concentration)
-#    repulsion = (epsilon_r * epsilon_0 * Psi_0**2) * circle_geom * np.exp(-kappa * sep)
-#    print(f"Electrostatic Force for distance h {sep}: " + str(repulsion))
-#    return repulsion
-
-
-# Updated function to calculate electrostatic repulsion force between a sphere and a plane
-def electrostatic_repulsion_force(sep, concentration): #e-11 wrong shape curve
-    kappa = 1 / debye_length(concentration)
-    # Force per unit area
-    force_per_area = ((epsilon_r * epsilon_0 * Psi_0**2 * kappa) / 2) * np.exp(-kappa * sep)
-    # Approximating the contact area as a circle with radius equal to the separation distance
-    contact_area = 2 * np.pi * radius
-    # Total force
-    total_force = force_per_area * contact_area
-    print(f"Electrostatic Force for distance h {sep}: " + str(total_force))
-    return total_force
-    # WHY ARE YOU FLAAAAAT
-
-# Updated function to calculate electrostatic repulsion force between a sphere and a plane
-def electrostatic_repulsion_force_e34(sep, concentration): # e-34
-    kappa = 1 / debye_length(concentration)
-    # Force per unit area
-    force_per_area = 2 * (epsilon_r * epsilon_0 * Psi_0**2)**2 * np.exp(-kappa * sep) # IMaSD Ch14 14.56
-    # Approximating the contact area as a circle with radius equal to the separation distance
-    contact_area = 2 * np.pi * radius
-    # Total force
-    total_force = force_per_area * contact_area
-    print(f"Electrostatic Force for distance h {sep}: " + str(total_force))
-    return total_force
-
-def electrostatic_repulsion_force_e20(sep, concentration): # e-20 #, Alex's attempt
-    kappa = 1 / debye_length(concentration)
-    # Force per unit area
-    force_per_area = epsilon_r * epsilon_0 * Psi_0**2 * np.exp(-kappa * sep)
-    # Derjaguin approximation to find the force
-    total_force = 2 * np.pi * radius * force_per_area
-    print(f"Electrostatic Force for distance h {sep}: " + str(total_force))
-    return total_force
-
-# Function to calculate electrostatic repulsion force between a sphere and a plane
-def electrostatic_repulsion_force_weird(sep, concentration): # e-12 but backwards??
-    kappa = 1 / debye_length(concentration)
-    sigma = epsilon_0 * epsilon_r * kappa * Psi_0
-    # Derjaguin approximation to find the force
-    force = 2 * np.pi * radius * epsilon_0 * epsilon_r * sigma**2 * ((kappa * np.exp(-kappa * sep)) / (1 + np.exp(-kappa * sep)))
-    print(f"Electrostatic Force for distance h {sep}: " + str(force))
-    return force
-
-def electrostatic_repulsion_force_agh(sep, concentration): # e-10 but also wrong (u shaped)
-    kappa = 1 / debye_length(concentration)
-    # Force per unit area
-    force_per_area = (2 * np.pi * radius * (epsilon_r * epsilon_0 * kappa * Psi_0)**2 * np.exp(-kappa * sep)) / (kappa * epsilon_0 * epsilon_r)
-    # Derjaguin approximation to find the force
-    total_force = force_per_area
-    print(f"Electrostatic Force for distance h {sep}: " + str(total_force))
-    return total_force
-
-def electrostatic_repulsion_force_bad(sep, concentration): # like e20 or something idk
-    kappa = 1 / debye_length(concentration)
-    # Force per unit area
-    force_per_area = 4 * np.pi ** 2 * radius * epsilon_r * epsilon_0 * Psi_0**2 * np.exp(-kappa * sep)
-    # Derjaguin approximation to find the force
-    total_force = force_per_area
-    print(f"Electrostatic Force for distance h {sep}: " + str(total_force))
-    return total_force
-
-# These two seem closest
-
-def electrostatic_repulsion_force(sep, concentration): #Right numbers wrong shape so close :(
-    kappa = 1 / debye_length(concentration)
-    #Calculate the electrostatic force per unit area using the Derjaguin approximation for a sphere-plane interaction
-    
-    Z = 64 * np.pi * epsilon_0 * epsilon_r * (kB * temperature / e)**2 * np.tanh(1 * e * Psi_0 / (4 * kB * temperature))**2
-    #force_per_area = kappa * radius * Z * np.exp(-kappa * sep)
-    W_flat = (kappa / 2 * np.pi) * Z * np.exp(-kappa * sep)
-    force_per_area = 2 * np.pi * radius * W_flat
-    # Derjaguin approximation to find the force
-    total_force = force_per_area
-    print(f"Electrostatic Force for distance h {sep}: " + str(total_force))
-    return total_force
-
-def electrostatic_repulsion_force(sep, concentration): #sphere plane fig 14.10 IMaSD
+def electrostatic_repulsion_force(sep, concentration, roughness_value = None): #sphere plane fig 14.10 IMaSD
     kappa = 1 / debye_length(concentration)
     Z = 64 * np.pi * epsilon_0 * epsilon_r * (kB * temperature / e)**2 * np.tanh(valency * e * Psi_0 / (4 * kB * temperature))**2
+    if roughness_value is not None:
+        sep += roughness_value
     force_per_area = kappa * radius * Z * np.exp(-kappa * sep)
     print(f"Electrostatic Force for distance h {sep}: " + str(force_per_area))
     return force_per_area
 
-def electrostatic_repulsion_force_plane_plane(sep, concentration): #plane plane fig 14.10 IMaSD
-    kappa = 1 / debye_length(concentration)
-    Z = 64 * np.pi * epsilon_0 * epsilon_r * (kB * temperature / e)**2 * np.tanh(valency * e * Psi_0 / (4 * kB * temperature))**2
-    force_per_area = (kappa / (2 * np.pi)) * Z * np.exp(-kappa * sep)
-    print(f"Electrostatic Force for distance h {sep}: " + str(force_per_area))
-    return force_per_area
 
-def electrostatic_repulsion_force_wowow(sep, concentration): #e-11 # Alt fig 14.10 IMaSD sphere - plane
-    kappa = 1 / debye_length(concentration)
-    rho_inf = NA * concentration
-    #Calculate the electrostatic force per unit area using the Derjaguin approximation for a sphere-plane interaction
-    W_flat = ((64 * kB * temperature * rho_inf * np.tanh(1 * e * Psi_0 / (4 * kB * temperature))**2) / kappa ) * np.exp(-kappa * sep)
-    total_force = 2 * np.pi * radius * W_flat
-    print(f"Electrostatic Force for distance h {sep}: " + str(total_force))
-    return total_force
-
-def electrostatic_repulsion_force_nope(sep, concentration): #e-1
-    kappa = 1 / debye_length(concentration)
-    rho_inf = NA * concentration
-    #Calculate the electrostatic force per unit area using the Derjaguin approximation for a sphere-plane interaction
-    total_force = np.pi * epsilon_r * radius  * Psi_0**2 * np.exp(-kappa * sep)
-    print(f"Electrostatic Force for distance h {sep}: " + str(total_force))
-    return total_force
-
-def electrostatic_repulsion_force_oh(sep, concentration): #e-6 ???
-    kappa = 1 / debye_length(concentration)
-    total_force = 2 * epsilon_0 * sep * kappa ** 2 * Psi_0 ** 2 * np.exp(-kappa * sep)
-    print(f"Electrostatic Force for distance h {sep}: " + str(total_force))
-    return total_force
 # Assuming van der Waals interaction does not change with LiCl concentration for simplicity
 
 # Calculation for a range of LiCl concentrations
@@ -196,7 +92,9 @@ def electrostatic_repulsion_force_oh(sep, concentration): #e-6 ???
 li_cl_concentrations = np.arange(6e-1, 5.5e2, 1e-1)  # mM
 
 # Placeholder function for van der Waals energy
-def van_der_Waals_force(sep): # Sphere - plane fig 13.1 IMaSD
+def van_der_Waals_force(sep, roughness_value = None): # Sphere - plane fig 13.1 IMaSD
+    if roughness_value is not None:
+        sep += roughness_value
     force_vdw = - ((Hamaker_constant * radius) / (6 * sep ** 2)) # IMaSF ch13 eq 13.11b
     print(f"van der Waals Force for h {sep}: " + str(force_vdw))
     return force_vdw
@@ -208,9 +106,70 @@ def van_der_Waals_force_plane_plane(sep): # plane - plane fig 13.1 IMaSD
     return force_vdw
 
 # Total interaction energy function including LiCl concentration
-def total_interaction_energy(sep, concentration):
-    return van_der_Waals_force(sep) + electrostatic_repulsion_force(sep, concentration)
+def total_interaction_energy(sep, concentration, roughness_value = None):
+    return van_der_Waals_force(sep, roughness_value) + electrostatic_repulsion_force(sep, concentration, roughness_value)
 
+"""
+Curve estimation
+"""
+
+def calculate_retrace_force(sep_initial, adhesion_force, concentration, retract_distance, roughness_value = None):
+    # Initialize arrays to store force and distance values
+    forces = []
+    distances = np.linspace(sep_initial, sep_initial + retract_distance, num=100)
+    
+    for sep in distances:
+        vdW_force = van_der_Waals_force(sep, roughness_value)
+        electro_force = electrostatic_repulsion_force(sep, concentration, roughness_value)
+        total_force = vdW_force + electro_force - adhesion_force  # Subtract the adhesion force
+        forces.append(-total_force)
+    
+    return distances, forces
+
+# Function to generate the approach curve
+def generate_approach_curve(concentration, start_sep, end_sep, steps, roughness_value = None):
+    
+    separations = np.linspace(start_sep, end_sep, steps)
+    forces = []
+    for sep in separations:
+        force_vdw = van_der_Waals_force(sep, roughness_value)
+        force_el = electrostatic_repulsion_force(sep, concentration, roughness_value)
+        total_force = force_vdw + force_el
+        forces.append(total_force)
+    return separations, forces
+
+distances, forces = calculate_retrace_force(sep_initial, adhesion_force, concentration, tip_distance, roughness_value)
+
+# Plotting the retrace curve
+plt.figure()
+# plotting the experimental data
+if concentration in retract_dict:
+    #data = pd.read_csv(retract_dict[concentration], sep='\t', header=None)
+    data = pd.read_csv(retract_dict[concentration], delim_whitespace=True, header=None)
+    separation_data = data.iloc[:, 0] * 1e-10  # Assuming first column is separation
+    force_data = data.iloc[:, 1] * 1e-7      # Assuming second column is force
+    plt.scatter(separation_data, force_data, color='red', label='Experimental Data', marker='o')
+
+plt.plot(distances, forces, color='blue', label='Retrace curve')
+plt.xlabel('Separation distance (m)')
+plt.ylabel('Force (N)')
+plt.title('DLVO Retrace Curve')
+
+    #plt.plot(data[0], data[1], label='Retrace curve (experimental)', color='red')
+plt.legend()
+plt.grid(True)
+plt.show()
+plt.close()
+
+separations, forces = generate_approach_curve(concentration, tip_distance, sep_initial, 100, roughness_value)
+#plt.figure(figsize=(8, 5))
+plt.plot(separations, forces, label='Approach curve', color='red')
+plt.xlabel('Separation distance (nm)')
+plt.ylabel('DLVO Force (N)')
+plt.title('DLVO Approach and retrace Curve')
+plt.legend()
+plt.grid(True)
+plt.show()
 
 # Plot a graph of distance vs force with 3 curves; van der Waals, electrostatic, and combined
 # generate a range of distances from 1nm to 20 nm NOT LINSPACE, use python range not numpy
@@ -270,11 +229,11 @@ for conc in li_cl_concentrations:
     debye_len = debye_length(conc)  # Calculate Debye length
     #force = derjaguin_approximation_force(1e-9, radius, conc)  # Calculate force
     # find the
-    force = total_interaction_energy(h, conc)
+    force = total_interaction_energy(h, conc, roughness_value)
     forces.append(force)
     print(f"LiCl concentration: {conc} mM - Debye length: {debye_len} m - Force at contact: {force} N")
 
-experimental_data = [
+"""experimental_data = [
  [0.6, 5.245e-09, 1.468e-09],
  [1.6, 2.59e-09, 6e-10],
  [5, 2.216e-09, 5.33e-10],
@@ -296,19 +255,37 @@ experimental_data = [
  [10, 4.383e-09, 4.72e-10],
  [25, 3.851e-09, 1.467e-09],
  [550, -1.24e-10, 8e-10]
-]
+]"""
  # LiCl concentration (mM), force at contact (N), standard deviation 
+
+# Given data arrays
+ionic_strengths = np.array([0.6, 1.6, 5, 10, 25, 50, 230, 550])
+approach_force = np.array([4.518, 3.568, 3.044, 3.335, 2.928666667, 3.0615, 1.467, -0.156])
+standard_deviations_approach = np.array([1.196644336, 0.571262199, 0.580405031, 0.746983266,
+                                         1.432576583, 0.657742351, 0.362660309, 0.47126072])
+
+# Convert the forces and standard deviations to the scientific format and combine them into the desired format
+experimental_data = [[i, f, sd] for i, f, sd in zip(ionic_strengths, approach_force * 1e-9, standard_deviations_approach * 1e-9)]
 
 # plot a graph
 # make it a log scale on the x axis
 plt.figure(figsize=(10, 6))
-plt.plot(li_cl_concentrations, forces)
+plt.plot(li_cl_concentrations, forces, label="Calculated Forces")
 plt.xscale("log")
 plt.xlabel("LiCl Concentration (mM)")
 plt.ylabel("Force at Contact (N)")
 plt.title("Force at Contact vs. LiCl Concentration")
 #add the experimental data
+honk = True
 for data in experimental_data:
-    plt.errorbar(data[0], data[1], yerr=data[2], fmt='o', ecolor='red', capsize=5)
+    if honk:
+        plt.errorbar(data[0], data[1], yerr=data[2], fmt='o', color="red", ecolor='red', capsize=5, label='Experimental Data')
+        honk = False
+    plt.errorbar(data[0], data[1], yerr=data[2], fmt='o', color="red", ecolor='red', capsize=5)
 plt.grid(True)
+# Adding a black line at W* = 0
+plt.axhline(0, color='black', linewidth=1)
+# Adding a grid
+plt.grid(True, which="both", ls="--", color='gray')
+plt.legend()
 plt.show()
