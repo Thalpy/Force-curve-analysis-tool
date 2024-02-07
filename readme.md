@@ -1,3 +1,9 @@
+# What this does
+
+These scripts will convert multiple force curves into a binned averaged curve. Read the Thesis here: [thesis not published yet] to see how it works in detail.
+
+Useful for reducing noise levels in older AFMs.
+
 # Setup
 ## Run this in terminal in the directory of the project to create a virtual environment and install the required packages:
 
