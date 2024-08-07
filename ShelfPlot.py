@@ -1,6 +1,6 @@
-# Extracting the provided data from the image into a pandas DataFrame for plotting.
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Data extracted from the image
 data = {
@@ -14,28 +14,30 @@ data = {
 # Create DataFrame
 df = pd.DataFrame(data)
 
-# Plotting the data
-# Since we have two y-axes, we'll create a twin axis
+# Group by concentration and calculate mean and standard deviation
+grouped = df.groupby('Concentration (mM)').agg(['mean', 'std'])
+
+# Plotting the data with standard deviation error bars
 fig, ax1 = plt.subplots()
-# Set the x axis to a logarithmic scale
-ax1.set_xscale('log')
+ax1.set_xscale('log')  # Set the x-axis to a logarithmic scale
 
-# Plot Shelf Force
-color = 'tab:red'
+# Plot Shelf Force with error bars
+color_force = 'tab:red'
 ax1.set_xlabel('Concentration (mM)')
-ax1.set_ylabel('Shelf Force (nN)', color=color)
-ax1.scatter(df['Concentration (mM)'], df['Shelf Force (nN)'], color=color)
-ax1.tick_params(axis='y', labelcolor=color)
+ax1.set_ylabel('Shelf Force (nN)', color=color_force)
+ax1.errorbar(grouped.index, grouped['Shelf Force (nN)']['mean'], yerr=grouped['Shelf Force (nN)']['std'], 
+             fmt='o', color=color_force, ecolor=color_force, elinewidth=2, capsize=5)
+ax1.tick_params(axis='y', labelcolor=color_force)
 
-# Create a twin Axes sharing the same x-axis
+# Create a twin Axes sharing the same x-axis for Shelf Range
 ax2 = ax1.twinx()
 
-# Plot Shelf Range
-color = 'tab:blue'
-ax2.set_ylabel('Shelf Range (nm)', color=color)
-ax2.scatter(df['Concentration (mM)'], df['Shelf Range (nm)'], color=color)
-ax2.tick_params(axis='y', labelcolor=color)
+# Plot Shelf Range with error bars
+color_range = 'tab:blue'
+ax2.set_ylabel('Shelf Range (nm)', color=color_range)
+ax2.errorbar(grouped.index, grouped['Shelf Range (nm)']['mean'], yerr=grouped['Shelf Range (nm)']['std'], 
+             fmt='o', color=color_range, ecolor=color_range, elinewidth=2, capsize=5)
+ax2.tick_params(axis='y', labelcolor=color_range)
 
-# Show the plot
 fig.tight_layout()
 plt.show()
